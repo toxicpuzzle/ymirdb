@@ -24,24 +24,35 @@ struct element {
   };
 };
 
+//! Additional attributes to help with copying/handling forward/backward references.
+// entry* copy_reference - if is_visiting, recursive function will point to copy_reference
+// char has_visited - Used to check if node should be copied, reference to current entry stored in array of visited nodes, and all nodes visited will have is_visiting attribute and copy_reference cleared.
+// For copying - Run through every element in the list, if !has_visited, create pointer to copy of entry, set copy_reference to equal that pointer, set has_visited true, and copy values over to copy of entry, recursively call copy on every forward node. Once full loop finishes, reset has_visited to false for all nodes, and clear copy_reference.
+// To get the entries in order - run through every element in the original list, store the copy_reference, go the next element in original list, attach the current Cr to the previous Cr, and repeat until done. return first copy_reference as start to copy of current tree.
+
+
+
 struct entry {
   char key[MAX_KEY];
-  char is_simple;
-  element * values;
-  size_t length;
+  char is_simple; //? What is thiis? is this a boolean to demonstrate if the entry is simple?
+  element * values; //? Stores the values that are associated with this key
+  size_t length; //? Stores the number of values associated with the key
+  entry* copy_reference;
+  char has_visited;
 
-  entry* next;
-  entry* prev;
+  entry* next; //? Points to the next entry or to do with the history of the entry?
+  entry* prev; // Points to the previous entry
   
-  size_t forward_size; 
-  size_t forward_max; 
+  size_t forward_size; // Number of forward links
+  size_t forward_max; //? What is this? Is this the max element out of all elements in the forward links?
   entry** forward;  // this entry depends on these
     
-  size_t backward_size; 
-  size_t backward_max; 
-  entry** backward; // these entries depend on this
+  size_t backward_size; // Number of backward links
+  size_t backward_max;  //? Min max element out of all elements in backward links? or just current max size (constant number of forward back links?) -> Resize when backward_size reaches this num? -> don't have to realloc too frequently
+  entry** backward; // these entries depend on this //TODO: How to avoid O(n^2) time when deleting general entries?
 };
 
+//? Maybe add a length variable to keep track of how many entries snapshot contains -> Easier deleting
 struct snapshot {
   int id;
   entry* entries;
