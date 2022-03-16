@@ -47,11 +47,11 @@ struct entry {
   entry* prev; // Points to the previous entry
   
   size_t forward_size; // Number of forward links
-  size_t forward_max; //? What is this? Is this the max element out of all elements in the forward links?
+//   size_t forward_max; //? What is this? Is this the max element out of all elements in the forward links?
   entry** forward;  // this entry depends on these
     
   size_t backward_size; // Number of backward links
-  size_t backward_max;  //? Min max element out of all elements in backward links? or just current max size (constant number of forward back links?) -> Resize when backward_size reaches this num? -> don't have to realloc too frequently
+//   size_t backward_max;  //? Min max element out of all elements in backward links? or just current max size (constant number of forward back links?) -> Resize when backward_size reaches this num? -> don't have to realloc too frequently
   entry** backward; // these entries depend on this //TODO: How to avoid O(n^2) time when deleting general entries?
 };
 

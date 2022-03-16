@@ -33,6 +33,8 @@ snapshot* last_snapshot;
 //
 
 entry** get_forward_links(entry* e, int* size);
+void entry_recalcsmm(entry* e);
+
 void _inspect_state();
 
 void command_bye() {
@@ -167,12 +169,15 @@ entry* entry_create(char** args, size_t args_size){
 	}
 
 	// Set key for entry
-	e->values = calloc(args_size-1, sizeof(element));
+	// e->values = calloc(args_size-1, sizeof(element));
 	memcpy(e->key, key, strlen(key)+1);
 
 	// Set elements for entry
 	e->values = elements_create(args+1, args_size-1);
 	e->length = args_size-1;
+
+	// Set max, min, sum
+	entry_recalcsmm(e);
 
 	return e;
 }
@@ -206,8 +211,10 @@ void entry_append(entry* e, char** args, size_t args_size){
 		if (current_element->type == ENTRY){
 			entry* forward_link = current_element->entry;
 			entry_connect(e, forward_link);
-		}
-	}
+		} 
+	}	
+
+	entry_recalcsmm(e);
 }
 
 //! Fix error of not mallocing sufficiently!
@@ -218,112 +225,92 @@ void entry_push(entry* e, char** args, size_t args_size){
 	e->values = realloc(e->values,	(e->length)*sizeof(element)); 
 	memcpy(e->values+args_size, e->values, sizeof(element)*(e->length-args_size));
 	memcpy(e->values, elements, sizeof(element)*args_size);
+
+	for (int i = 0; i < args_size; i++){
+		element* current_element = elements+i;
+		if (current_element->type == ENTRY){
+			entry* forward_link = current_element->entry;
+			entry_connect(e, forward_link);
+		} 
+	}	
+
+	entry_recalcsmm(e);
 }
 
-
-//TODO: Make sure these functions are running within qudratic time constraints -> e.g. using forwad_max to keep track of largest max far in forward chain.
 void entry_min(entry* e){
-	int min = INT_MAX;
+	int min = e->min;
 	int forward_size = 0;
-	// _inspect_state();
 	entry** forwards  = get_forward_links(e, &forward_size);
 
-	// _inspect_state();
-	// Look through own values to find value smaller than min
-	for (int i = 0; i < e->length; i++){
-		if (e->values[i].type == INTEGER && e->values[i].value < min){
-			min = e->values[i].value;
-		}
-	}
-
 	for (int i = 0; i < forward_size; i++){
-		entry* forward = forwards[i];
-		// printf("Looking at key: %s\n", forward->key);
-		for (int j = 0; j < forward->length; j++){
-			element current_element = forward->values[j];
-			if (current_element.type == INTEGER && current_element.value < min){
-				min = current_element.value;
-			}
-		}		
+		if (forwards[i]->min < min){
+			min = forwards[i]->min;
+		}
 	}
 
 	printf("Minimum value is: %d\n", min);
-	//? free(forwards); -> Investigate why putting free forwards here leads to double free? i.e. freed in earlier calls and then tried to reference again in later calls?
+
 	if (forward_size > 0){
 		free(forwards);
 	}
-	// free(forwards);
+
 }
 
 void entry_max(entry* e){
-	int max = INT_MIN;
+	int max = e->max;
 	int forward_size = 0;
 	entry** forwards  = get_forward_links(e, &forward_size);
-
-	for (int i = 0; i < e->length; i++){
-		if (e->values[i].type == INTEGER && e->values[i].value > max){
-			max = e->values[i].value;
-		}
-	}
-
+	
 	for (int i = 0; i < forward_size; i++){
-		entry* forward = forwards[i];
-		// printf("Looking at key: %s\n", forward->key);
-		for (int j = 0; j < forward->length; j++){
-			element current_element = forward->values[j];
-			if (current_element.type == INTEGER && current_element.value > max){
-				max = current_element.value;
-			}
-		}		
-	}
-
-	printf("Maximum value is: %d\n", max);
-	if (forward_size > 0){
-		free(forwards);
-	}
-	// free(forwards);
-}
-
-
-int sum_calculate(entry* e){
-	int sum = 0;
-	for (int i = 0; i < e->length; i++){
-		element* curr_elem = e->values+i;
-		if (curr_elem->type == INTEGER){
-			sum += curr_elem->value;
-		} else {
-			sum += sum_calculate(curr_elem->entry);
-		}
-	}
-
-	return sum;
-}
-
-void entry_sum(entry* e){
-	int sum = sum_calculate(e);
-	printf("Sum of values is: %d\n", sum);
-}
-
-// Private method used by entry_len to get the DFS counting length of a general entry
-int _entry_len(entry* e){
-	int num_list_size = 0;
-	e->has_visited = true;
-
-	for (int i = 0; i < e->length; i++){
-		if (e->values[i].type == INTEGER){
-			num_list_size++;
-		} else if (e->values[i].type == ENTRY && e->values[i].entry->has_visited == false){
-			num_list_size += _entry_len(e->values[i].entry);
+		if (forwards[i]->max > max){
+			max = forwards[i]->max;
 		}
 	}
 	
-	return num_list_size;
+	printf("Maximum value is: %d\n", max);
+
+	if (forward_size > 0){
+		free(forwards);
+	}
 }
 
-// TODO: Specialised DFS function to count only simple entries towards the final size, can't just get forward links
-void entry_len(entry* e){
-	int length = _entry_len(e);
-	printf("The number of values in the entry is: %d\n", length);
+
+void entry_sum(entry* e){
+	// _inspect_state();
+	int sum = e->sum;
+	int forward_size = 0;
+	entry** forwards  = get_forward_links(e, &forward_size);
+
+	for (int i = 0; i < forward_size; i++){
+		sum += forwards[i]->sum;
+	}
+
+	printf("Sum of values is: %d\n", sum);
+
+	if (forward_size > 0){
+		free(forwards);
+	}
+}
+
+// Private method used by entry_len to get the DFS counting length of a general entry
+int entry_len(entry* e){
+	
+	int len = e->length-e->forward_size;
+	int forward_size = 0;
+	entry** forwards  = get_forward_links(e, &forward_size);
+
+	for (int i = 0; i < forward_size; i++){
+		entry* forward = forwards[i];
+		len += forward->length-forward->forward_size;
+	}
+
+	printf("The number of values in the entry is: %d\n", len);
+
+	if (forward_size > 0){
+		free(forwards);
+	}
+	
+	return len;
 }
 
 //! Careful with this one! You don't want memory leaks
@@ -518,7 +505,7 @@ void entry_set(entry* e){
 		entry** backward_copy = calloc(existing->backward_size, sizeof(entry*));
 		memcpy(backward_copy, existing->backward, existing->backward_size*(sizeof(entry*)));
 		e->backward = backward_copy;
-		e->backward_max = existing->backward_max;
+		// e->backward_max = existing->backward_max;
 		e->backward_size = existing->backward_size;
 
 		
@@ -840,6 +827,31 @@ void entry_pick(entry* e, int index){
 	}
 }
 
+// Extra O(n) operation to calculate local min, max, and sum.
+void entry_recalcsmm(entry* e){
+	int min = INT_MAX;
+	int max = INT_MIN;
+	int sum = 0;
+	// Search through entries to find new min new max
+	for (int i = 0; i < e->length; i++){
+		element* current_element = e->values+i;
+		if (current_element->type != ENTRY){
+			// Update sum, min, max
+			if (current_element->value < min){
+				min = current_element->value;
+			}
+			if (current_element->value > max){
+				max = current_element->value;
+			}
+			sum += current_element->value;	
+		}
+	}	
+	e->min = min;
+	e->max = max;
+	e->sum = sum;
+}
+
+
 void entry_pluck(entry* e, int index){
 	entry_pick(e, index);
 	// entry_delete(e);
@@ -850,6 +862,8 @@ void entry_pluck(entry* e, int index){
 	if (elem_to_remove->type == ENTRY){
 		elem_to_remove->entry->backward =_entries_remove(elem_to_remove->entry->backward, &elem_to_remove->entry->backward_size, e);
 		e->forward = _entries_remove(e->forward, &e->forward_size, elem_to_remove->entry);
+	} else {
+		entry_recalcsmm(e);
 	}
 
 	// _inspect_state();
