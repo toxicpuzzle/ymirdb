@@ -1,0 +1,17 @@
+> SET a 1
+> SET b 1
+> SET c 1
+> SET d 1
+> SET a b c d
+> LIST ENTRIES
+a [b c d]
+b [1]
+c [1]
+d [1]
+> PLUCK a 1
+Value at index 1 in entry with key a is: c
+> LIST ENTRIES
+a [b d]
+b [1]
+c [1]
+d [1]

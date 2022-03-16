@@ -1,0 +1,7 @@
+SET a 1 2 3
+SEt b 4 5 6
+APPEND a b
+LIST ENTRIES
+MAX a
+SUM a
+LEN a
