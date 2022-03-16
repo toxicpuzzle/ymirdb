@@ -39,6 +39,9 @@ struct entry {
   size_t length; //? Stores the number of values associated with the key
   entry* copy_reference;
   char has_visited;
+  int sum;
+  int max;
+  int min; 
 
   entry* next; //? Points to the next entry or to do with the history of the entry?
   entry* prev; // Points to the previous entry
