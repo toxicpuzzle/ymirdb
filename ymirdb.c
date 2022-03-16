@@ -747,13 +747,9 @@ void _rm_backward_links_to(entry* e){
 	}
 }
 
-
-
-// TODO: Deleting element at the end of the list seems to not effectively delete the element. -> Fixed
 void entry_delete(entry* e){
-	// _inspect_state();
+	_inspect_state();
 
-	//! backlinks not working
 	if (e->backward_size > 0){
 		printf("You cannot delete an entry with backlinks!\n");
 		return;
@@ -761,21 +757,39 @@ void entry_delete(entry* e){
 		_rm_forward_links_to(e);
 		_rm_backward_links_to(e);
 
-		if (e->prev == NULL){
+		entry* before = e->prev;
+		entry* after = e->next;
+
+
+		// Rest before and after links
+		if (before != NULL){
+			before->next = after;
+		}
+		if (after != NULL){
+			after->prev = before;
+		}
+
+		// Reset current state
+		if (current_state->key == e->key){
 			current_state = e->next;
-		} else {
-			entry* before = e->prev;
-			entry* after = e->next;
-			if (after == NULL){
-				before->next = NULL;
-			} else {
-				before->next = after;
-				after->prev = before;
-			}			
-		} 	
+		}
+
+		// if (before == NULL){
+		// 	current_state = e->next;
+		// 	if (current_state != NULL){
+		// 		current_state->prev = NULL;
+		// 	}
+		// } else {
+		// 	if (after == NULL){
+		// 		before->next = NULL;
+		// 	} else {
+		// 		before->next = after;
+		// 		after->prev = before;
+		// 	}			
+		// } 	
 
 		entry_free(e);
-		// _inspect_state();
+		_inspect_state();
 	}
 }
 
@@ -834,8 +848,8 @@ void entry_pluck(entry* e, int index){
 
 	// Remove backlinks to e for entries that link back to e due to e containing elem_to_remove
 	if (elem_to_remove->type == ENTRY){
-		_entries_remove(elem_to_remove->entry->backward, &elem_to_remove->entry->backward_size, e);
-		_entries_remove(e->forward, &e->forward_size, elem_to_remove->entry);
+		elem_to_remove->entry->backward =_entries_remove(elem_to_remove->entry->backward, &elem_to_remove->entry->backward_size, e);
+		e->forward = _entries_remove(e->forward, &e->forward_size, elem_to_remove->entry);
 	}
 
 	// _inspect_state();
@@ -904,35 +918,65 @@ snapshot* snapshot_get(int id){
 	return NULL;
 }
 
-entry* entry_copy(entry* e){
-	if (e->is_simple){
-		entry* copy = calloc(1, sizeof(entry));
-		element* copy_values = calloc(e->length, sizeof(element));
-		
-		// Copy memory from e for the entry to copy
-		memcpy(copy, e, sizeof(entry));
+// Creates a copy of the entry inside e->copy_reference that links to all forward entries.
+entry* _entry_copy(entry* e){
 
-		// Create deep copies of values array
-		memcpy(copy_values, e->values, sizeof(element)*e->length);
-		copy->values = copy_values;
-		return copy;
-	} else {
-		printf("Cannot copy an entry that is not simple!\n");
-		// TODO: Ensure forward and backward references are copied over to the new array.
+	// Return entry's copy if it has already been copied'
+	if (e->copy_reference != NULL){
+		return e->copy_reference;
 	}
 
-	return NULL;
+	entry* copy = calloc(1, sizeof(entry));
+	element* copy_values = calloc(e->length, sizeof(element));
+
+	// Store copy of e's forward entries (new forward array)
+	int forward_copies_size = 0;
+	entry** forward_copies = calloc(e->forward_size, sizeof(entry*));
+
+	// Copy memory from e for the entry to copy, but clear forward/backward arrays for copies
+	memcpy(copy, e, sizeof(entry));
+	copy->backward_size = 0;
+	copy->forward_size = 0;
+	copy->backward = NULL;
+	copy->forward = NULL;
 	
-	
-	// TODO: For general entries, think about how you would create ensure these entries are linked to the references? 
-	//? IDEA: When you encounter a forward link, call entry copy recursively and make attach the return value to the forward link
-	//? IDEA: When the returned entry comes back add its backward link to current entry
-	//? How to avoid double copying entries? i.e. if we already copied all in one chain, don't copy that chain again -> think of edge case where you have a->b, a->c, b, c->d
-		//? Store the keys we have already computed? in an array and check in function to see if key is already in (n^2 time though)
-		//? Store id variable for each entry in the list -> add to struct? and then use marked array i.e. constant time lookup for whether you double copied
-		//? Apply the same idea to deleting entries.
-		//! If you go this route, you will need to refactor delete and append commands by implementing a global variable for storing the number of nodes in the current state.
+
+	// Iterate through all values and make links to copies of forward entries 
+	for (int i = 0; i < e->length; i++){
+		element* elem = e->values + i;
+		element* elem_copy = copy_values + i;
+		memcpy(elem_copy, elem, sizeof(element)); //? Copy values over by default, deal with entry case as exception
+		if (elem->type == ENTRY){
+			printf("%s", elem->entry->key);
+			entry* forward_copy = _entry_copy(elem->entry);
+			
+			// Connect e to copy of forward link in both ways
+			forward_copy->backward = _entry_append(forward_copy->backward, e, (int*)&forward_copy->backward_size);
+			forward_copies = _entry_append(forward_copies, forward_copy, (int*)&forward_copies_size); //! reassignment needed due to realloc chaning addresses
+			elem_copy->type = ENTRY;
+			elem_copy->entry = forward_copy; 
+		} 
+		
+	}
+	copy->values = copy_values;
+	copy->forward = forward_copies;
+	copy->forward_size = forward_copies_size;	
+	e->copy_reference = copy;
+
+	return copy;
 }
+
+//? If every thing is O(n) instead of each entry, then iterating through all entries and degrees is O(n)
+			
+// 	// TODO: For general entries, think about how you would create ensure these entries are linked to the references? 
+// 	//? IDEA: When you encounter a forward link, call entry copy recursively and make attach the return value to the forward link
+// 	//? IDEA: When the returned entry comes back add its backward link to current entry
+// 	//? How to avoid double copying entries? i.e. if we already copied all in one chain, don't copy that chain again -> think of edge case where you have a->b, a->c, b, c->d
+// 		//? Store the keys we have already computed? in an array and check in function to see if key is already in (n^2 time though)
+// 		//? Store id variable for each entry in the list -> add to struct? and then use marked array i.e. constant time lookup for whether you double copied
+// 		//? Apply the same idea to deleting entries.
+// 		//! If you go this route, you will need to refactor delete and append commands by implementing a global variable for storing the number of nodes in the current state.
+// }
 
 
 //? Could create pointer to last element and just append to that 
@@ -946,27 +990,21 @@ void snapshot_append(snapshot* snap){
 		snap->prev = last_snapshot;
 		last_snapshot = snap;
 	}
-	// snapshot* cursor = first_snapshot;
-	
-	// if (cursor == NULL){
-	// 	first_snapshot = snap;
-	// 	return;
-	// }
-
-	// while (cursor->next != NULL){
-	// 	cursor = cursor->next;
-	// }
-	// cursor->next = snap;
-
 }
 
+//?! Are forward and backward entries of a certain entry always going to maintain the same index? probably not? e.g. triangle
 snapshot* snapshot_create(entry* entries){
 	entry* cursor = entries;
 	entry* entries_copy = NULL;
 	entry* previous = NULL;
-	// TODO: Set pointer to start of copied entries
+
 	while (cursor != NULL){
-		entry* copy = entry_copy(cursor); //! might have corrupted top size with poor management of entry_copy()
+		entry* copy = cursor->copy_reference;
+		if (copy == NULL){
+			copy = _entry_copy(cursor); //! might have corrupted top size with poor management of entry_copy() -> old
+		}
+
+		// Link entry to previous entry in chain
 		if (previous != NULL){
 			previous->next = copy;
 			copy->prev = previous;
@@ -981,13 +1019,27 @@ snapshot* snapshot_create(entry* entries){
 		cursor = cursor->next;
 	}
 
+	// Set all elements' copy_reference to null after creating snapshot
+	cursor = entries;
+	while (cursor != NULL){
+		// printf("%s ", cursor->key);
+		cursor->copy_reference = NULL;
+		cursor->has_visited = false;
+		cursor = cursor->next;
+	}
+	// printf("\n");
+
 	snapshot* new_snapshot = calloc(1, sizeof(snapshot));
+	// printf("%p\n", entries_copy);
+	// printf("%s\n", entries_copy->key);
 	new_snapshot->entries = entries_copy;
+
 	if (last_snapshot != NULL){
 		new_snapshot->id = last_snapshot->id+1; //TODO: Check if this is the correct id naming system or if you should have global var tracker.
 	} else {
 		new_snapshot->id = 0;
 	}
+	
 	return new_snapshot;
 }
 
@@ -1056,8 +1108,7 @@ void snapshot_checkout(snapshot* snap){
 }
 
 void snapshot_save(){
-	// TODO: Deep copy current state into a snapshot
-	snapshot* new_snapshot = snapshot_create(current_state); //! Error coming from snapshot_create();
+	snapshot* new_snapshot = snapshot_create(current_state); 
 	snapshot_append(new_snapshot);
 }
 
@@ -1072,24 +1123,33 @@ int snapshot_size(snapshot* snap){
 }
 
 void purge(char* key){
-	entry_delete(entry_get(key));
-	// Find all the elements with the same key in snapshots
+	
 	entry* original_state = current_state;
-	snapshot* cursor = first_snapshot;
-	while (cursor != NULL){
-		// Make create generalised entry_get/delete for snapshots -> don't need to set them as current state?
-		current_state = cursor->entries;
-		entry_delete(entry_get(key)); //! Side effect -> changes current_state.
-		cursor->entries = current_state;
-		cursor = cursor->next;
+	entry* to_delete;
+
+	// Find key in snapshots and delete
+	snapshot* snap = first_snapshot;
+	while (snap != NULL){
+		current_state = snap->entries;
+		to_delete = entry_get(key);
+		if (to_delete != NULL){
+			entry_delete(to_delete);
+		}
+		snap->entries = current_state; //? Make snapshot possess correct starting entries upon deletion
+		snap = snap->next;
 	}
+
+	// printf("Purged from all snapshots\n");
+
+	// Restore original state after purging
+	// Find key in current database and delete
 	current_state = original_state;
-}
-void args_get_values(){
+	to_delete = entry_get(key);
+	if (to_delete != NULL){
+		entry_delete(to_delete);
+	} 
 
 }
-
-
 
 int main(void) {
 
@@ -1175,7 +1235,7 @@ int main(void) {
 			entry* e = entry_get(args[1]);
 			entry_max(e);
 		} else if (strcasecmp(command_type, "SUM") == 0){
-			entry* e = entry_get(args[1]);
+			entry* e = entry_get(args[1]); // TODO: Add local sum, max, len so you don't have to sum degrees.
 			entry_sum(e);
 		} else if (strcasecmp(command_type, "LEN") == 0){
 			entry* e = entry_get(args[1]);

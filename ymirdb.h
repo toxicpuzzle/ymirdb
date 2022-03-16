@@ -25,7 +25,7 @@ struct element {
 };
 
 //! Additional attributes to help with copying/handling forward/backward references.
-// entry* copy_reference - if is_visiting, recursive function will point to copy_reference
+// entry* copy_reference - if is_visiting, recursive function will point to copy_reference //! how can you guaratee that values array for entries are in order though?
 // char has_visited - Used to check if node should be copied, reference to current entry stored in array of visited nodes, and all nodes visited will have is_visiting attribute and copy_reference cleared.
 // For copying - Run through every element in the list, if !has_visited, create pointer to copy of entry, set copy_reference to equal that pointer, set has_visited true, and copy values over to copy of entry, recursively call copy on every forward node. Once full loop finishes, reset has_visited to false for all nodes, and clear copy_reference.
 // To get the entries in order - run through every element in the original list, store the copy_reference, go the next element in original list, attach the current Cr to the previous Cr, and repeat until done. return first copy_reference as start to copy of current tree.
