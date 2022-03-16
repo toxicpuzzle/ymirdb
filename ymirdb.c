@@ -11,8 +11,8 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <limits.h>
-
 #include "ymirdb.h"
+# define TEST 0
 
 entry* current_state;
 snapshot* first_snapshot;
@@ -36,6 +36,14 @@ entry** get_forward_links(entry* e, int* size);
 void entry_recalcsmm(entry* e);
 
 void _inspect_state();
+
+void swap(void* a1, int idx1, int idx2, size_t size_each_elem){
+	void* temp = calloc(1, size_each_elem);
+	memcpy(temp, a1+idx1*size_each_elem, size_each_elem); 
+	memcpy(a1+idx1*size_each_elem, a1+idx2*size_each_elem, size_each_elem);
+	memcpy(a1+idx2*size_each_elem, temp, size_each_elem);
+	free(temp);
+}
 
 void command_bye() {
 	printf("bye\n");
@@ -217,10 +225,17 @@ void entry_append(entry* e, char** args, size_t args_size){
 	entry_recalcsmm(e);
 }
 
+void _reverse_array(void* array, int length, size_t size){
+	for (int i = 0; i < length/2; i++){
+		swap(array, i, length-i-1, size);
+	}
+}
+
 //! Fix error of not mallocing sufficiently!
 void entry_push(entry* e, char** args, size_t args_size){
 	// Create array of elements to attach to the entry
 	element* elements = elements_create(args, args_size);
+	_reverse_array((void*)elements, (int)args_size, sizeof(element));
 	e->length = e->length + args_size;
 	e->values = realloc(e->values,	(e->length)*sizeof(element)); 
 	memcpy(e->values+args_size, e->values, sizeof(element)*(e->length-args_size));
@@ -329,43 +344,49 @@ void entry_free(entry* e){
 // TODO: Create entry_modify() function i.e. starts with args and just changes values, and adds forward references to existing entry. (does not create a new entry)
 
 // Testing function to look at everything in memory
-void _inspect_state(){
-	entry* cursor = current_state;
-	while (cursor != NULL){
-		printf(">>> %s (Is simple: %d)\n", cursor->key, cursor->is_simple);
-		printf("Values: ");
-		for (int i = 0; i < cursor->length; i++){
-			element elem = cursor->values[i];
-			if (elem.type == ENTRY){
-				printf("%s", elem.entry->key);
-			} else {
-				printf("%d", elem.value);
+#if (TEST == 1)
+	void _inspect_state(){
+		entry* cursor = current_state;
+		while (cursor != NULL){
+			printf(">>> %s (Is simple: %d)\n", cursor->key, cursor->is_simple);
+			printf("Values: ");
+			for (int i = 0; i < cursor->length; i++){
+				element elem = cursor->values[i];
+				if (elem.type == ENTRY){
+					printf("%s", elem.entry->key);
+				} else {
+					printf("%d", elem.value);
+				}
+				printf(" ");
 			}
-			printf(" ");
+			printf("\n");
+
+			printf("Backward links (%ld): ", cursor->backward_size);
+
+			for (int i = 0; i < cursor->backward_size; i++){
+				entry* backward = cursor->backward[i];
+				printf("%s", backward->key);
+				printf(" ");
+			}
+			printf("\n");
+
+			printf("Forward links (%ld): ", cursor->forward_size);
+			
+			for (int i = 0; i < cursor->forward_size; i++){
+				entry* forward= cursor->forward[i];
+				printf("%s", forward->key);
+				printf(" ");
+			}
+			printf("\n");
+
+			cursor = cursor->next;
 		}
-		printf("\n");
-
-		printf("Backward links (%ld): ", cursor->backward_size);
-
-		for (int i = 0; i < cursor->backward_size; i++){
-			entry* backward = cursor->backward[i];
-			printf("%s", backward->key);
-			printf(" ");
-		}
-		printf("\n");
-
-		printf("Forward links (%ld): ", cursor->forward_size);
-		
-		for (int i = 0; i < cursor->forward_size; i++){
-			entry* forward= cursor->forward[i];
-			printf("%s", forward->key);
-			printf(" ");
-		}
-		printf("\n");
-
-		cursor = cursor->next;
 	}
-}
+#else
+	void _inspect_state(){
+		return;
+	}
+#endif
 
 
 // Removes entry with address rm from an array
@@ -384,12 +405,14 @@ entry** _entries_remove(entry** entries, size_t* entries_len, entry* rm){
 	// 	printf("%s, ", entries[i]->key);
 	// }
 	// printf("\n");
-
+	// printf("entries length is: %ld\n", *entries_len);
 
 	// Copy everything beyond index to index position
 	if (*entries_len == 1){ //! Edge case causing segfault because we cannot realloc?
 		*entries_len = *entries_len - 1;
-		free(entries);
+		// printf("%p\n", entries);
+		free(entries); 
+		entries = NULL; //! Need to return null or you'll return pointer to garbage;
 	} else {
 		memcpy(entries+idx, entries+idx+1, (*entries_len-(idx+1))*sizeof(entry*));
 		*entries_len = *entries_len - 1;
@@ -398,7 +421,7 @@ entry** _entries_remove(entry** entries, size_t* entries_len, entry* rm){
 
 
 	
-	// // TESTING;
+	// // // TESTING;
 	// printf("***Viewing entries AFTER removing***\n");
 	// for (int i = 0; i < *entries_len; i++){
 	// 	printf("%s, ", entries[i]->key);
@@ -539,13 +562,7 @@ void entry_set(entry* e){
 
 
 
-void swap(void* a1, int idx1, int idx2, size_t size_each_elem){
-	void* temp = calloc(1, size_each_elem);
-	memcpy(temp, a1+idx1*size_each_elem, size_each_elem); 
-	memcpy(a1+idx1*size_each_elem, a1+idx2*size_each_elem, size_each_elem);
-	memcpy(a1+idx2*size_each_elem, temp, size_each_elem);
-	free(temp);
-}
+
 
 void entry_reverse(entry* e){
 	if (e->is_simple == false){
@@ -818,8 +835,20 @@ void entry_unique(entry* e){
 
 }
 
-void entry_pick(entry* e, int index){
+void entry_pick(entry* e, int index){	
+	if (e->length == 0){
+		printf("nil\n");
+		return;
+	}
+	
+	if (index < 0 || index >= e->length){
+		printf("Index out of range\n");
+		return;
+	}
+
+
 	element* elem = e->values+index;
+
 	if (elem->type == INTEGER){
 		printf("Value at index %d in entry with key %s is: %d\n", index, e->key, elem->value);
 	} else {
@@ -853,72 +882,104 @@ void entry_recalcsmm(entry* e){
 
 
 void entry_pluck(entry* e, int index){
+	if (e->length == 0){
+		printf("nil\n");
+		return;
+	}
+
+	if (index < 0 || index >= e->length){
+		printf("index out of range\n");
+		return;
+	}
+
 	entry_pick(e, index);
-	// entry_delete(e);
 	element* elem_to_remove = e->values+index;
-	// _inspect_state();
+
 
 	// Remove backlinks to e for entries that link back to e due to e containing elem_to_remove
 	if (elem_to_remove->type == ENTRY){
-		elem_to_remove->entry->backward =_entries_remove(elem_to_remove->entry->backward, &elem_to_remove->entry->backward_size, e);
-		e->forward = _entries_remove(e->forward, &e->forward_size, elem_to_remove->entry);
+		entry* forward = elem_to_remove->entry;
+		forward->backward =_entries_remove(forward->backward, &forward->backward_size, e); // remove back link
+		e->forward = _entries_remove(e->forward, &e->forward_size, elem_to_remove->entry); // remove forwad link
 	} else {
 		entry_recalcsmm(e);
 	}
 
-	// _inspect_state();
 
-	// Remove element from element array
+	
 	e->length--;
 	memcpy(elem_to_remove, elem_to_remove+1, (e->length-index)*sizeof(element));
 	e->values = realloc(e->values, e->length*sizeof(element));
 
-	// Remove e's forward reference to element 
+	// // Resize values array to fit size.
+	// // TODO: Cannot malloc sizeof 0 -> fix this
+	// if (e->length == 0){
+	// 	// Delete element array entirely.
+	// 	free(e->values);
+	// } else {
+	// 	// Remove element from element array
+	// 	memcpy(elem_to_remove, elem_to_remove+1, (e->length-index)*sizeof(element));
+	// 	e->values = realloc(e->values, e->length*sizeof(element));
+	// }
+	
+	//! Issue with realloc -> when you to  size 0 is that valid?
 
 
-	// Remove the value at the index
-	// free(e->values+index);
 	 //? Can realloc be used to shrink the amount of memory allocated? YES
+	//  free(e->values+index);; //! Does this cause double free?
 	//! Don't forget to realloc the exact amount in bytes, i.e. forgot to multiply by sizeof(element);
 	// TODO: Fix memory leak from losing the reference to the element that has been deleted, actuall no because element array here i.e. if you remove the element with realloc it's gone, only do it for element*
 }
 
 void entry_pop(entry* e){
-	if (e->length > 1){ // TODO: Check if you can pop an entry with only 1 value?
-		entry_pluck(e, 0);
-	} else {
-		printf("Cannot pop an entry that has only 1 or 0 values \n");
-	}
+	entry_pluck(e, 0);
 }
 
 void list_keys(){
 	entry* cursor = current_state;
+
+	if (cursor == NULL){
+		printf("no keys\n");
+		return;
+	}
+
 	while (cursor != NULL){
 		printf("%s\n", cursor->key);
 		cursor = cursor->next;
 	}
+	printf("\n");
 }
 
 void list_entries(){
 	entry* cursor = current_state;
+
+	if (cursor == NULL){
+		printf("no entries\n");
+		return;
+	}
+
 	while (cursor != NULL){
 		printf("%s ", cursor->key);
 		entry_tostring(cursor); //? Should this display the links as a letter or the elements in that next link?
 		cursor = cursor->next;
 	}
+	printf("\n");
 }
 
 void list_snapshots(){
 	snapshot* cursor = first_snapshot;
-	int counter = 0;
+
+	if (cursor == NULL){
+		printf("no entries\n");
+		return;
+	}
+
 	while (cursor != NULL){
 		printf("%d ", cursor->id);
 		cursor = cursor->next;
-		counter++;
 	}
-	if (counter > 0){
-		printf("\n");
-	}
+	printf("\n");
+
 }
 
 snapshot* snapshot_get(int id){
@@ -1051,7 +1112,7 @@ snapshot* snapshot_create(entry* entries){
 	if (last_snapshot != NULL){
 		new_snapshot->id = last_snapshot->id+1; //TODO: Check if this is the correct id naming system or if you should have global var tracker.
 	} else {
-		new_snapshot->id = 0;
+		new_snapshot->id = 1;
 	}
 	
 	return new_snapshot;
@@ -1118,12 +1179,17 @@ void snapshot_rollback(snapshot* snap){
 
 //! When you checkout to an entry and then drop that entry whilst you're in the snapshot -> you get junk values when you list entries.
 void snapshot_checkout(snapshot* snap){
-	current_state = snap->entries; //TODO: Deep copy over the snapshot into the current state?
+	// Free current state
+	entries_free(current_state);
+	snapshot* snap_copy = snapshot_create(snap->entries);
+	current_state = snap_copy->entries;
+	free(snap_copy); //? don't need id for copy of snapshot
 }
 
-void snapshot_save(){
+snapshot* snapshot_save(){
 	snapshot* new_snapshot = snapshot_create(current_state); 
 	snapshot_append(new_snapshot);
+	return new_snapshot;
 }
 
 int snapshot_size(snapshot* snap){
@@ -1152,8 +1218,6 @@ void purge(char* key){
 		snap->entries = current_state; //? Make snapshot possess correct starting entries upon deletion
 		snap = snap->next;
 	}
-
-	// printf("Purged from all snapshots\n");
 
 	// Restore original state after purging
 	// Find key in current database and delete
@@ -1214,12 +1278,14 @@ int main(void) {
 		if (strcasecmp(command_type, "SET") == 0){
 			entry* e = entry_create(args+1, args_size-1); //! TODO: Fix issue within entry_create
 			entry_set(e);
+			printf("ok\n");
 		} else if (strcasecmp(command_type, "PUSH") == 0){
 			entry* e = entry_get(args[1]);
 			if (e == NULL) {
 				printf("No entry with key: %s was found!\n", args[1]);
 			} else {
 				entry_push(e, args+2, args_size-2); //TODO: make it so teh push is not atoi
+				printf("ok\n");
 			}
 		} else if (strcasecmp(command_type, "APPEND") == 0){
 			entry* e = entry_get(args[1]); //? +1 so that we don't include the command in the arguments used to build the entry
@@ -1227,6 +1293,7 @@ int main(void) {
 				printf("No entry with key: %s was found!\n", args[1]);
 			} else {
 				entry_append(e, args+2, args_size-2);
+				printf("ok\n");
 			}
 		} else if (strcasecmp(command_type, "GET") == 0){
 			entry* e = entry_get(args[1]);
@@ -1268,7 +1335,7 @@ int main(void) {
 			if (!string_isnumeric(args[2])){
 				printf("Cannot pluck an index that is not numeric!\n");
 			} else {
-				int index = atoi(args[2]);
+				int index = atoi(args[2])-1;
 				entry_pluck(e, index);	
 			}
 		} else if (strcasecmp(command_type, "PICK") == 0){
@@ -1276,7 +1343,7 @@ int main(void) {
 			if (!string_isnumeric(args[2])){
 				printf("Cannot pick an index that is not numeric!\n");
 			} else {
-				int index = atoi(args[2]);
+				int index = atoi(args[2])-1;
 				entry_pick(e, index);	
 			}
 		} else if (strcasecmp(command_type, "POP") == 0){
@@ -1308,14 +1375,20 @@ int main(void) {
 				list_snapshots();
 			} 
 		} else if (strcasecmp(command_type, "SNAPSHOT") == 0){
-		 	snapshot_save();
+		 	snapshot* snap = snapshot_save();
+			printf("saved as snapshot %d\n", snap->id);
 		} else if (strcasecmp(command_type, "DROP") == 0){ //! Segfaults
 			if (!string_isnumeric(args[1])){
 				printf("You must provide a valid ID for a snapshot!\n");
 			} else {
 				int id = atoi(args[1]);
 				snapshot* snap = snapshot_get(id);
-				snapshot_drop(snap);
+				if (snap == NULL){
+					printf("No such snapshot\n");
+				} else {
+					snapshot_drop(snap);
+				}
+
 			}
 		} else if (strcasecmp(command_type, "ROLLBACK") == 0){ //! Segfaults
 			if (!string_isnumeric(args[1])){
