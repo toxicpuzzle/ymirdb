@@ -1422,6 +1422,8 @@ int main(void) {
 			// TODO: Free the memory that has been allocated to snapshots and entries
 		}
 
+		printf("\n");
+
 		//! Make sure to free the arguments after you have finished operating on them;
 		// isdigit()
 		
