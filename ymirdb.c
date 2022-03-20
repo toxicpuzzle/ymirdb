@@ -37,6 +37,15 @@ void entry_recalcsmm(entry* e);
 
 void _inspect_state();
 
+void fwrapper_entry(entry* e, void f(entry*)){
+	if (e == NULL) {
+		printf("no such key\n");
+	} else {
+		f(e); //TODO: make it so teh push is not atoi
+		printf("ok\n");
+	}
+}
+
 void swap(void* a1, int idx1, int idx2, size_t size_each_elem){
 	void* temp = calloc(1, size_each_elem);
 	memcpy(temp, a1+idx1*size_each_elem, size_each_elem); 
@@ -1272,8 +1281,9 @@ int main(void) {
 		
 		if (strcasecmp(command_type, "SET") == 0){
 			entry* e = entry_create(args+1, args_size-1); //! TODO: Fix issue within entry_create
-			entry_set(e);
-			printf("ok\n");
+			fwrapper_entry(e, &entry_set);
+			// entry_set(e);
+			// printf("ok\n");
 		} else if (strcasecmp(command_type, "PUSH") == 0){
 			entry* e = entry_get(args[1]);
 			if (e == NULL) {
@@ -1299,33 +1309,45 @@ int main(void) {
 			}
 		} else if (strcasecmp(command_type, "DEL") == 0){
 			entry* e = entry_get(args[1]);
+			fwrapper_entry(e, &entry_delete);
+			// if (e == NULL) {
+			// 	printf("no such key\n");
+			// } else {
+			// 	entry_delete(e);
+			// 	printf("ok\n");
+			// }
+		} else if (strcasecmp(command_type, "MIN") == 0){
+			entry* e = entry_get(args[1]);
+			fwrapper_entry(e, &entry_min);
+			// entry_min(e);
+		} else if (strcasecmp(command_type, "MAX") == 0){
+			entry* e = entry_get(args[1]);
+			fwrapper_entry(e, &entry_max);
+			// entry_max(e);
+		} else if (strcasecmp(command_type, "SUM") == 0){
+			entry* e = entry_get(args[1]); // TODO: Add local sum, max, len so you don't have to sum degrees.
+			fwrapper_entry(e, &entry_sum);
+			// entry_sum(e);
+		} else if (strcasecmp(command_type, "LEN") == 0){
+			entry* e = entry_get(args[1]);
+			// fwrapper_entry(e, &entry_len);
 			if (e == NULL) {
 				printf("no such key\n");
 			} else {
-				entry_delete(e);
-				printf("ok\n");
+				entry_len(e);
 			}
-		} else if (strcasecmp(command_type, "MIN") == 0){
-			entry* e = entry_get(args[1]);
-			entry_min(e);
-		} else if (strcasecmp(command_type, "MAX") == 0){
-			entry* e = entry_get(args[1]);
-			entry_max(e);
-		} else if (strcasecmp(command_type, "SUM") == 0){
-			entry* e = entry_get(args[1]); // TODO: Add local sum, max, len so you don't have to sum degrees.
-			entry_sum(e);
-		} else if (strcasecmp(command_type, "LEN") == 0){
-			entry* e = entry_get(args[1]);
-			entry_len(e);
 		} else if (strcasecmp(command_type, "SORT") == 0){
 			entry* e = entry_get(args[1]);
-			entry_sort(e);
+			fwrapper_entry(e, &entry_sort);
+			// entry_sort(e);
 		} else if (strcasecmp(command_type, "REV") == 0){
 			entry* e = entry_get(args[1]);
-			entry_reverse(e);
+			fwrapper_entry(e, &entry_reverse);
+			// entry_reverse(e);
 		} else if (strcasecmp(command_type, "UNIQ") == 0){
 			entry* e = entry_get(args[1]); //TODO: add input verification and also checking that entry exists
-			entry_unique(e);
+			fwrapper_entry(e, &entry_unique);
+			// entry_unique(e);
 		} else if (strcasecmp(command_type, "PLUCK") == 0){
 			entry* e = entry_get(args[1]);
 			if (!string_isnumeric(args[2])){
@@ -1344,18 +1366,23 @@ int main(void) {
 			}
 		} else if (strcasecmp(command_type, "POP") == 0){
 			entry* e = entry_get(args[1]);
-			entry_pop(e);
+			fwrapper_entry(e, &entry_pop);
+			// entry_pop(e); //! Check for entry valid -> actually have some wrapper function that does that
 		} else if (strcasecmp(command_type, "FORWARD") == 0){
 			entry* e = entry_get(args[1]);
-			entry_forward(e);
+			fwrapper_entry(e, &entry_forward);
+			// entry_forward(e);
 		} else if (strcasecmp(command_type, "BACKWARD") == 0){
 			entry* e = entry_get(args[1]);
-			entry_backward(e);
+			fwrapper_entry(e, &entry_backward);
+			// entry_backward(e);
 		} else if (strcasecmp(command_type, "PURGE") == 0){
 			char* key = args[1];
+			// fwrapper_entry(e, &entry_pop);
 			purge(key);
 		}  else if (strcasecmp(command_type, "TYPE") == 0){
 			entry* e = entry_get(args[1]);
+			fwrapper_entry(e, &entry_type);
 			if (e == NULL) {
 				printf("no such key\n"); //TODO: Use function pointers (create wrapper function) to call any functions that use the get entry method.
 			} else {
