@@ -50,7 +50,7 @@ void command_bye() {
 }
 
 void command_help() {
-	printf("%s\n", HELP);
+	printf("%s", HELP);
 }
 
 bool string_isnumeric(char* string){
@@ -962,7 +962,6 @@ void list_entries(){
 		entry_tostring(cursor); //? Should this display the links as a letter or the elements in that next link?
 		cursor = cursor->next;
 	}
-	printf("\n");
 }
 
 void list_snapshots(){
@@ -977,8 +976,6 @@ void list_snapshots(){
 		printf("%d ", cursor->id);
 		cursor = cursor->next;
 	}
-	printf("\n");
-
 }
 
 snapshot* snapshot_get(int id){
@@ -1423,7 +1420,6 @@ int main(void) {
 		}
 
 		printf("\n");
-
 		//! Make sure to free the arguments after you have finished operating on them;
 		// isdigit()
 		
