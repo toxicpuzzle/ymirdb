@@ -190,17 +190,16 @@ entry* entry_create(char** args, size_t args_size){
 	return e;
 }
 
-void state_append(entry* e){
+// Adds the entry to the database state (current_state)
+void state_push(entry* e){
 	if (current_state == NULL){
 		current_state = e;
 	} else {
-		// Go to the end of the current list
-		entry* cursor = current_state;
-		while (cursor->next != NULL){
-			cursor = cursor->next;
-		}
-		cursor->next = e;
-		e->prev = cursor;
+		// Add the entry to stack (current_state)
+		entry* old_state = current_state;
+		current_state = e;
+		current_state->next = old_state;
+		old_state->prev = current_state;
 	}
 }
 
@@ -464,7 +463,7 @@ void entry_set(entry* e){
 	// Search through current state and see if the entry with key is tehre
 	entry* existing = entry_get(e->key);
 	if (existing == NULL){
-		state_append(e); // TODO: Consider whether you should by default push or append?
+		state_push(e); // TODO: Consider whether you should by default push or append?
 	} else {
 
 		//! Fix the segfault error when you do b 2 d
