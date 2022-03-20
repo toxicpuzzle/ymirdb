@@ -1303,6 +1303,7 @@ int main(void) {
 				printf("no such key\n");
 			} else {
 				entry_delete(e);
+				printf("ok\n");
 			}
 		} else if (strcasecmp(command_type, "MIN") == 0){
 			entry* e = entry_get(args[1]);
@@ -1356,7 +1357,7 @@ int main(void) {
 		}  else if (strcasecmp(command_type, "TYPE") == 0){
 			entry* e = entry_get(args[1]);
 			if (e == NULL) {
-				printf("no such key\n", args[1]); //TODO: Use function pointers (create wrapper function) to call any functions that use the get entry method.
+				printf("no such key\n"); //TODO: Use function pointers (create wrapper function) to call any functions that use the get entry method.
 			} else {
 				entry_type(e);
 			}
