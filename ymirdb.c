@@ -1277,7 +1277,7 @@ int main(void) {
 		} else if (strcasecmp(command_type, "PUSH") == 0){
 			entry* e = entry_get(args[1]);
 			if (e == NULL) {
-				printf("No entry with key: %s was found!\n", args[1]);
+				printf("no such key\n");
 			} else {
 				entry_push(e, args+2, args_size-2); //TODO: make it so teh push is not atoi
 				printf("ok\n");
@@ -1285,7 +1285,7 @@ int main(void) {
 		} else if (strcasecmp(command_type, "APPEND") == 0){
 			entry* e = entry_get(args[1]); //? +1 so that we don't include the command in the arguments used to build the entry
 			if (e == NULL){
-				printf("No entry with key: %s was found!\n", args[1]);
+				printf("no such key\n");
 			} else {
 				entry_append(e, args+2, args_size-2);
 				printf("ok\n");
@@ -1293,14 +1293,14 @@ int main(void) {
 		} else if (strcasecmp(command_type, "GET") == 0){
 			entry* e = entry_get(args[1]);
 			if (e == NULL) {
-				printf("No entry with key: %s was found!\n", args[1]);
+				printf("no such key\n");
 			} else {
 				entry_tostring(e);
 			}
 		} else if (strcasecmp(command_type, "DEL") == 0){
 			entry* e = entry_get(args[1]);
 			if (e == NULL) {
-				printf("No entry with key: %s was found!\n", args[1]);
+				printf("no such key\n");
 			} else {
 				entry_delete(e);
 			}
@@ -1356,7 +1356,7 @@ int main(void) {
 		}  else if (strcasecmp(command_type, "TYPE") == 0){
 			entry* e = entry_get(args[1]);
 			if (e == NULL) {
-				printf("No entry with key: %s was found!\n", args[1]); //TODO: Use function pointers (create wrapper function) to call any functions that use the get entry method.
+				printf("no such key\n", args[1]); //TODO: Use function pointers (create wrapper function) to call any functions that use the get entry method.
 			} else {
 				entry_type(e);
 			}
