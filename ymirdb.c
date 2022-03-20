@@ -946,7 +946,6 @@ void list_keys(){
 		printf("%s\n", cursor->key);
 		cursor = cursor->next;
 	}
-	printf("\n");
 }
 
 void list_entries(){
