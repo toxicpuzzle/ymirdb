@@ -13,6 +13,7 @@
 #include <limits.h>
 #include "ymirdb.h"
 # define TEST 0
+#define PRINT_COMMAND 1
 
 entry* current_state;
 snapshot* first_snapshot;
@@ -402,10 +403,14 @@ void entry_free(entry* e){	//! Changed so entry free frees the entry and its for
 
 // Removes entry with address rm from an array
 entry** _entries_remove(entry** entries, size_t* entries_len, entry* rm){
+	
+	// printf("entry to remove is %s\n", rm->key);
+
 	int idx = 0;
 	// Grab index to remove
 	for (; idx < *entries_len; idx++){
-		if (entries[idx] == rm){
+		// printf("%s ", entries[idx]->key);
+		if (strcmp(entries[idx]->key, rm->key) == 0){
 			break;
 		}
 	}
@@ -425,6 +430,7 @@ entry** _entries_remove(entry** entries, size_t* entries_len, entry* rm){
 		free(entries); 
 		entries = NULL; //! Need to return null or you'll return pointer to garbage;
 	} else {
+		// printf("%ld %d\n", *entries_len, idx); //! Mixed test case -> why is b's backward entry size of 2? Shouldn't be any forward links to a though in mixed test case
 		memmove(entries+idx, entries+idx+1, (*entries_len-(idx+1))*sizeof(entry*));
 		*entries_len = *entries_len - 1;
 		entries = realloc(entries, (*entries_len)*sizeof(entry*));
@@ -511,6 +517,7 @@ void entry_set(entry* e){
 
 		// Make all existing back entries point forward to new entry
 		//! a->new b - Troublesome section here
+		//! O(n^2) if you set the entries.
 		for (int i = 0; i < existing->backward_size; i++){
 			entry* backward = existing->backward[i];
 			backward->forward = _entries_replace(backward->forward, &backward->forward_size, existing, e);
@@ -751,8 +758,10 @@ void entry_type(entry* e){
 //! Would this count as quadratic time? Ask about this, if so don't delete the back links
 void _rm_forward_links_to(entry* e){
 	// Remove each back link to e every for every forward link e has
+	// printf("backward links: %d\n", e->forward)
 	for (int i = 0; i < e->forward_size; i++){
 		entry* forward_link = e->forward[i];
+		// printf("forward_link: %s\n", forward_link->key);
 		forward_link->backward = _entries_remove(forward_link->backward, &forward_link->backward_size, e);
 	}
 }
@@ -1045,7 +1054,7 @@ entry* _entry_copy(entry* e){
 		memcpy(elem_copy, elem, sizeof(element)); //? Copy values over by default, deal with entry case as exception
 		if (elem->type == ENTRY){
 			printf("%s", elem->entry->key);
-			entry* forward_copy = _entry_copy(elem->entry);
+			entry* forward_copy = _entry_copy(elem->entry); // TODO: Fix returning of copy reference, nvm it is working. just didn't read right?
 			
 			// Connect e to copy of forward link in both ways
 			forward_copy->backward = _entry_append(forward_copy->backward, e, (int*)&forward_copy->backward_size);
@@ -1060,6 +1069,8 @@ entry* _entry_copy(entry* e){
 	copy->forward = forward_copies;
 	copy->forward_size = forward_copies_size;	
 	e->copy_reference = copy;
+
+	printf(" ");
 
 	return copy;
 }
@@ -1303,8 +1314,12 @@ int main(void) {
 
 
 		// Process multiple arguments to the command line
+		# if (PRINT_COMMAND == 1)
+			printf("%s\n", line);
+		#endif
 		char* word = strtok(line, " \n\r"); 
-		char** args = calloc(MAX_KEY, sizeof(char*)); //! Failing to succesfully allocate sufficient memory to a datatype leads to undefined behaviour!! E.g. corrupted top size can't malloc properly in the future
+		char** args = calloc(MAX_LINE, sizeof(char*));
+		// char** args = calloc(MAX_KEY, sizeof(char*)); //! Failing to succesfully allocate sufficient memory to a datatype leads to undefined behaviour!! E.g. corrupted top size can't malloc properly in the future
 		size_t args_size = 0;
 		while (word != NULL) {
 			args[args_size] = word;
