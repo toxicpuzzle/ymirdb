@@ -1016,7 +1016,8 @@ entry* _entry_copy(entry* e){
 
 	// Store copy of e's forward entries (new forward array)
 	int forward_copies_size = 0;
-	entry** forward_copies = calloc(e->forward_size, sizeof(entry*)); //! mem leak
+	entry** forward_copies = NULL;
+	// entry** forward_copies = calloc(e->forward_size, sizeof(entry*)); //! mem leak
 
 	// Copy memory from e for the entry to copy, but clear forward/backward arrays for copies
 	memcpy(copy, e, sizeof(entry));
@@ -1042,6 +1043,7 @@ entry* _entry_copy(entry* e){
 		} 
 		
 	}
+
 	copy->values = copy_values;
 	copy->forward = forward_copies;
 	copy->forward_size = forward_copies_size;	
@@ -1181,7 +1183,7 @@ void program_clear(){
 	snapshot* cursor = last_snapshot; 
 	snapshot* old;
 
-	snapshot_free(current_state); //! Current state is not duplicate of snapshot?
+	snapshot_free(current_state); 
 
 	while (cursor != NULL){
 		old = cursor;
@@ -1385,6 +1387,7 @@ int main(void) {
 			if (!string_isnumeric(args[2])){
 				printf("Cannot pluck an index that is not numeric!\n");
 			} else {
+				//! check entry is valid
 				int index = atoi(args[2])-1;
 				entry_pluck(e, index);	
 			}
