@@ -74,7 +74,7 @@ bool string_isnumeric(char* string){
 }
 
 // TEMP: Just making the function print out the entry for now, will make it return a string instead later
-char* entry_tostring(entry* e){
+void entry_tostring(entry* e){
 	char* string = calloc(e->length*2, sizeof(char));
 	printf("[");
 	for (int i = 0; i < e->length; i++){
@@ -92,7 +92,8 @@ char* entry_tostring(entry* e){
 		//TODO: Write recursive function that converts links to other keys to strings within current string.
 	}
 	printf("]\n");
-	return string;
+	free(string);
+	// return string;
 }	
 
 
@@ -230,7 +231,9 @@ void entry_append(entry* e, char** args, size_t args_size){
 		} 
 	}	
 
+	free(elements);
 	entry_recalcsmm(e);
+
 }
 
 void _reverse_array(void* array, int length, size_t size){
@@ -246,7 +249,7 @@ void entry_push(entry* e, char** args, size_t args_size){
 	_reverse_array((void*)elements, (int)args_size, sizeof(element));
 	e->length = e->length + args_size;
 	e->values = realloc(e->values,	(e->length)*sizeof(element)); 
-	memcpy(e->values+args_size, e->values, sizeof(element)*(e->length-args_size));
+	memmove(e->values+args_size, e->values, sizeof(element)*(e->length-args_size));
 	memcpy(e->values, elements, sizeof(element)*args_size);
 
 	for (int i = 0; i < args_size; i++){
@@ -257,6 +260,7 @@ void entry_push(entry* e, char** args, size_t args_size){
 		} 
 	}	
 
+	free(elements);
 	entry_recalcsmm(e);
 }
 
@@ -309,7 +313,6 @@ void entry_sum(entry* e){
 	}
 
 	printf("Sum of values is: %d\n", sum);
-
 	if (forward_size > 0){
 		free(forwards);
 	}
@@ -337,12 +340,12 @@ int entry_len(entry* e){
 }
 
 //! Careful with this one! You don't want memory leaks
-void entry_free(entry* e){	
+void entry_free(entry* e){	//! Changed so entry free frees the entry and its forward references -> causes memory issues elsewhere.
 	// Free all values pointed to by e
-	free(e->values);
-	// for (int i = 0; i < e->length; i++){
-	// 	free(e->values+i);
-	// }
+	if (e->values != NULL) free(e->values);
+	if (e->forward != NULL) free(e->forward);
+	if (e->backward != NULL) free(e->backward);
+	if (e->copy_reference != NULL) free(e->copy_reference);
 	free(e);
 }
 
@@ -422,7 +425,7 @@ entry** _entries_remove(entry** entries, size_t* entries_len, entry* rm){
 		free(entries); 
 		entries = NULL; //! Need to return null or you'll return pointer to garbage;
 	} else {
-		memcpy(entries+idx, entries+idx+1, (*entries_len-(idx+1))*sizeof(entry*));
+		memmove(entries+idx, entries+idx+1, (*entries_len-(idx+1))*sizeof(entry*));
 		*entries_len = *entries_len - 1;
 		entries = realloc(entries, (*entries_len)*sizeof(entry*));
 	}
@@ -499,7 +502,7 @@ void entry_set(entry* e){
 		// make all existing forward entries point back to new entry 
 		for (int i = 0; i < existing->forward_size; i++){// TODO: Replace this with _rm_forward_link_to
 			entry* forward = existing->forward[i];
-			_entries_remove(forward->backward, &forward->backward_size, existing); 
+			forward->backward = _entries_remove(forward->backward, &forward->backward_size, existing); 
 		}
 
 		// _inspect_state();
@@ -510,8 +513,8 @@ void entry_set(entry* e){
 		//! a->new b - Troublesome section here
 		for (int i = 0; i < existing->backward_size; i++){
 			entry* backward = existing->backward[i];
-			_entries_replace(backward->forward, &backward->forward_size, existing, e);
-			_elements_replace(backward->values, &backward->length, existing, e);
+			backward->forward = _entries_replace(backward->forward, &backward->forward_size, existing, e);
+			backward->values = _elements_replace(backward->values, &backward->length, existing, e);
 		}
 
 		// printf("--------------\n");
@@ -610,8 +613,8 @@ void entry_clear_visits(){
 //! example solution will be to add all elements to the array 
 //! Boss solution: Create own set/hashmap data structure that works with any input so you can perform traversals without repetiiton yet also do it in constant time (need to write own hash function though)
 entry** _get_forward_links(entry* e, int* size){
-	entry** forwards;
-	entry** next_forwards;
+	entry** forwards = NULL;
+	entry** next_forwards = NULL;
 	int next_size = 0;
 
 	// Base case - If the current entry has already been visited i.e. added to forwards list, don't add it again
@@ -635,6 +638,7 @@ entry** _get_forward_links(entry* e, int* size){
 			*size += next_size;
 			forwards = realloc(forwards, (*size)*sizeof(entry*));		
 			memcpy(forwards+*size-next_size, next_forwards, next_size*sizeof(entry*));
+			free(next_forwards);
 		}
 	}
 	
@@ -642,13 +646,14 @@ entry** _get_forward_links(entry* e, int* size){
 }
 
 
+//! Calling array should free the array
 // Returns array containing all forward_entries, with int telling the length of the entry array
 entry** get_forward_links(entry* e, int* size){
 	entry** forwards = _get_forward_links(e, size);
 	e->has_visited = false;
 	for (int i = 0; i < *size; i++){
 		forwards[i]->has_visited = false;
-	}
+	}	
 	return forwards;
 }
 
@@ -678,6 +683,7 @@ entry** _get_backward_links(entry* e, int* size){
 			*size += next_size;
 			backwards = realloc(backwards, (*size)*sizeof(entry*));		
 			memcpy(backwards+*size-next_size, next_backwards, next_size*sizeof(entry*));
+			free(next_backwards);
 		}
 	}
 	
@@ -696,18 +702,17 @@ entry** get_backward_links(entry* e, int* size){
 void entry_forward(entry* e){
 	int size = 0;
 	entry** forward_entries = get_forward_links(e, &size);	
-	// Loop through all entries and reset their visited value;
 
-	// Sort to lexicographical order;
+	// TODO: Sort to lexicographical order;
 	e->has_visited = false;
 	for (int i = 0; i < size; i++){
 		printf("%s ", forward_entries[i]->key);
-		// forward_entries[i]->has_visited = false;
 	}
 
 	if (size == 0){
 		printf("nil\n\n");
 	} else {
+		free(forward_entries);
 		printf("\n");
 	}
 }
@@ -730,6 +735,7 @@ void entry_backward(entry* e){
 	if (size == 0){
 		printf("nil\n\n");
 	} else {
+		free(backward_entries);
 		printf("\n");
 	}
 }
@@ -747,7 +753,7 @@ void _rm_forward_links_to(entry* e){
 	// Remove each back link to e every for every forward link e has
 	for (int i = 0; i < e->forward_size; i++){
 		entry* forward_link = e->forward[i];
-		_entries_remove(forward_link->backward, &forward_link->backward_size, e);
+		forward_link->backward = _entries_remove(forward_link->backward, &forward_link->backward_size, e);
 	}
 }
 
@@ -755,7 +761,7 @@ void _rm_backward_links_to(entry* e){
 	// Remove forward links to e for every back link e has
 	for (int i = 0; i < e->backward_size; i++){
 		entry* backward_link = e->backward[i];
-		_entries_remove(backward_link->forward, &backward_link->forward_size, e);
+		backward_link->forward = _entries_remove(backward_link->forward, &backward_link->forward_size, e);
 	}
 }
 
@@ -808,7 +814,8 @@ void entry_delete(entry* e){
 int element_compare(const void* e1, const void* e2){
 	element* element_1 = (element*) e1;
 	element* element_2 = (element*) e2;
-	return element_1->value - element_2->value;
+	int result = element_1->value - element_2->value; 
+	return result;
 }
 
 // Use C library's sorting algos
@@ -822,12 +829,11 @@ void entry_unique(entry* e){
 	}
 
 	element* new_values = calloc(e->length, sizeof(element));
-	element* last_word;
+	element* last_word = NULL; //! Set it to null or you'll get stack underflow error (last_word == NULl) does not work
 	element* cursor = e->values;
 
 	int new_size = 0;
 	for (int i = 0; i < e->length; i++){
-		printf("Printing cursor: %d\n", cursor->value);
 		if (last_word == NULL || element_compare(last_word, cursor) != 0){
 			memcpy(new_values+new_size, cursor, sizeof(element));
 			new_size++;
@@ -916,7 +922,7 @@ void entry_pluck(entry* e, int index){
 
 	
 	e->length--;
-	memcpy(elem_to_remove, elem_to_remove+1, (e->length-index)*sizeof(element));
+	memmove(elem_to_remove, elem_to_remove+1, (e->length-index)*sizeof(element)); //! Address sanitizer issue -> use memmove instead?
 	e->values = realloc(e->values, e->length*sizeof(element));
 
 	// // Resize values array to fit size.
@@ -1010,7 +1016,7 @@ entry* _entry_copy(entry* e){
 
 	// Store copy of e's forward entries (new forward array)
 	int forward_copies_size = 0;
-	entry** forward_copies = calloc(e->forward_size, sizeof(entry*));
+	entry** forward_copies = calloc(e->forward_size, sizeof(entry*)); //! mem leak
 
 	// Copy memory from e for the entry to copy, but clear forward/backward arrays for copies
 	memcpy(copy, e, sizeof(entry));
@@ -1019,7 +1025,6 @@ entry* _entry_copy(entry* e){
 	copy->backward = NULL;
 	copy->forward = NULL;
 	
-
 	// Iterate through all values and make links to copies of forward entries 
 	for (int i = 0; i < e->length; i++){
 		element* elem = e->values + i;
@@ -1056,6 +1061,8 @@ entry* _entry_copy(entry* e){
 // 		//? Apply the same idea to deleting entries.
 // 		//! If you go this route, you will need to refactor delete and append commands by implementing a global variable for storing the number of nodes in the current state.
 // }
+
+
 
 
 //? Could create pointer to last element and just append to that 
@@ -1122,16 +1129,18 @@ snapshot* snapshot_create(entry* entries){
 	return new_snapshot;
 }
 
-void entries_free(entry* entries){
+void snapshot_free(entry* entries){
 	// Free up all the entries in the snapshot
 	entry* cursor = entries;
-	entry* old;
+	entry* old = NULL;
 	while (cursor != NULL){
 		old = cursor;
-		cursor = cursor->next;
-		entry_free(old);		
+		cursor = cursor->next; //! Make sure cursor points a allocated block of memory 
+		entry_free(old);
 	}
 }
+
+
 
 //! Bug: If you delete a snapsot when there is only one snapshots, subsequent snapshots added will not be found.
 //? error handling done by the main function
@@ -1141,7 +1150,7 @@ void snapshot_drop(snapshot* snap){
 
 	// Free up all the entries in the snapshot
 	printf("Trying to free entries in the snapshot to be dropped\n");
-	entries_free(snap->entries); //! Segfault line
+	snapshot_free(snap->entries); //! Segfault line
 	printf("succesfully freed entries in the snapshot to be dropped\n");
 
 	// Get previous snapshot to point to next snapshot and vice versa
@@ -1158,16 +1167,36 @@ void snapshot_drop(snapshot* snap){
 		after->prev = before;
 	}
 
+	// Update first and last snapshot
+	//! Last_snapshot needs to be null 
+
+	
+
+
 	free(snap);
 
+}
+
+void program_clear(){
+	snapshot* cursor = last_snapshot; 
+	snapshot* old;
+
+	snapshot_free(current_state); //! Current state is not duplicate of snapshot?
+
+	while (cursor != NULL){
+		old = cursor;
+		cursor = cursor->prev;
+		snapshot_drop(old);
+	}
 }
 
 void snapshot_rollback(snapshot* snap){
 	snapshot* cursor = last_snapshot; 
 	snapshot* old;
 
-	entries_free(current_state);
+	snapshot_free(current_state);
 
+	// Got the snapshot we want (deleting snapshots along the way)
 	while (cursor != NULL){
 		if (cursor == snap){
 			break;
@@ -1177,21 +1206,24 @@ void snapshot_rollback(snapshot* snap){
 		snapshot_drop(old);
 	}
 
+	// Create copy of snapshot we want to rollback to
+	snapshot* snap_copy = snapshot_create(cursor->entries);
+	current_state = snap_copy->entries;
+	free(snap_copy);
 	// Clear the current state (//TODO: Implement deep delete function alongside deep copy function)
-	current_state = cursor->entries;
 }
 
 //! When you checkout to an entry and then drop that entry whilst you're in the snapshot -> you get junk values when you list entries.
 void snapshot_checkout(snapshot* snap){
 	// Free current state
-	entries_free(current_state);
+	snapshot_free(current_state);
 	snapshot* snap_copy = snapshot_create(snap->entries);
 	current_state = snap_copy->entries;
 	free(snap_copy); //? don't need id for copy of snapshot
 }
 
 snapshot* snapshot_save(){
-	snapshot* new_snapshot = snapshot_create(current_state); 
+	snapshot* new_snapshot = snapshot_create(current_state);  //! Snapshots are not freed?
 	snapshot_append(new_snapshot);
 	return new_snapshot;
 }
@@ -1241,8 +1273,8 @@ int main(void) {
 
 
 	//! I can malloc a struct for test but it is not letting me do it in the function?
-	entry* test = malloc(sizeof(entry));
-	test->key[0] = 'c';
+	// entry* test = malloc(sizeof(entry));
+	// test->key[0] = 'c';
 
 	while (true) {
 		printf("> ");
@@ -1441,7 +1473,10 @@ int main(void) {
 		 	command_help();
 		} else if (strcasecmp(command_type, "BYE") == 0){
 			command_bye();
-			entries_free(current_state);
+			program_clear(); //! Does not work -> memory leak and double free
+			// snapshot_free(current_state); 
+			// Drop all snapshots
+			free(args);
 			return -1;
 			// TODO: Free the memory that has been allocated to snapshots and entries
 		}
@@ -1449,7 +1484,7 @@ int main(void) {
 		printf("\n");
 		//! Make sure to free the arguments after you have finished operating on them;
 		// isdigit()
-		
+		free(args);
 		// for (int i = 0; i < args_num; i++){
 		// 	printf("Argument %d: %s\n", i, args[i]);
 		// }
