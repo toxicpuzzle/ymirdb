@@ -1384,20 +1384,28 @@ int main(void) {
 			// entry_unique(e);
 		} else if (strcasecmp(command_type, "PLUCK") == 0){
 			entry* e = entry_get(args[1]);
-			if (!string_isnumeric(args[2])){
-				printf("Cannot pluck an index that is not numeric!\n");
+			if (e == NULL) {
+				printf("no such key\n");
 			} else {
-				//! check entry is valid
-				int index = atoi(args[2])-1;
-				entry_pluck(e, index);	
+				if (!string_isnumeric(args[2])){
+					printf("Cannot pluck an index that is not numeric!\n");
+				} else {
+					//! check entry is valid
+					int index = atoi(args[2])-1;
+					entry_pluck(e, index);	
+				}	
 			}
 		} else if (strcasecmp(command_type, "PICK") == 0){
 			entry* e = entry_get(args[1]);
-			if (!string_isnumeric(args[2])){
-				printf("Cannot pick an index that is not numeric!\n");
+			if (e == NULL) {
+				printf("no such key\n");
 			} else {
-				int index = atoi(args[2])-1;
-				entry_pick(e, index);	
+				if (!string_isnumeric(args[2])){
+					printf("Cannot pick an index that is not numeric!\n");
+				} else {
+					int index = atoi(args[2])-1;
+					entry_pick(e, index);	
+				}
 			}
 		} else if (strcasecmp(command_type, "POP") == 0){
 			entry* e = entry_get(args[1]);
