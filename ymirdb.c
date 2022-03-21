@@ -864,19 +864,19 @@ void entry_pick(entry* e, int index){
 	element* elem = e->values+index;
 
 	
-		if (elem->type == INTEGER){
-			#if (TEST == 1)
-				printf("Value at index %d in entry with key %s is: %d\n", index, e->key, elem->value);
-			#else
-				printf("%s\n", elem->value);
-			#endif
-		} else {
-			#if (TEST == 1)
-				printf("Value at index %d in entry with key %s is: %s\n", index, e->key, elem->entry->key);
-			#else
-				printf("%s\n", elem->entry->key);
-			#endif
-		}
+	if (elem->type == INTEGER){
+		#if (TEST == 1)
+			printf("Value at index %d in entry with key %s is: %d\n", index, e->key, elem->value);
+		#else
+			printf("%d\n", elem->value);
+		#endif
+	} else {
+		#if (TEST == 1)
+			printf("Value at index %d in entry with key %s is: %s\n", index, e->key, elem->entry->key);
+		#else
+			printf("%s\n", elem->entry->key);
+		#endif
+	}
 
 	
 
