@@ -863,11 +863,23 @@ void entry_pick(entry* e, int index){
 
 	element* elem = e->values+index;
 
-	if (elem->type == INTEGER){
-		printf("Value at index %d in entry with key %s is: %d\n", index, e->key, elem->value);
-	} else {
-		printf("Value at index %d in entry with key %s is: %s\n", index, e->key, elem->entry->key);
-	}
+	
+		if (elem->type == INTEGER){
+			#if (TEST == 1)
+				printf("Value at index %d in entry with key %s is: %d\n", index, e->key, elem->value);
+			#else
+				printf("%s\n", elem->value);
+			#endif
+		} else {
+			#if (TEST == 1)
+				printf("Value at index %d in entry with key %s is: %s\n", index, e->key, elem->entry->key);
+			#else
+				printf("%s\n", elem->entry->key);
+			#endif
+		}
+
+	
+
 }
 
 // Extra O(n) operation to calculate local min, max, and sum.
@@ -902,7 +914,7 @@ void entry_pluck(entry* e, int index){
 	}
 
 	if (index < 0 || index >= e->length){
-		printf("index out of range\n");
+		printf("Index out of range\n");
 		return;
 	}
 
