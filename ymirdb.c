@@ -1,7 +1,7 @@
 /**
  * comp2017 - assignment 2
- * <your name>
- * <your unikey>
+ * Tim Yang
+ * yyan0195
  */
 
 #include <stdio.h>
@@ -788,7 +788,7 @@ void entry_delete(entry* e){
 		entry* after = e->next;
 
 
-		// Rest before and after links
+		// Reset before and after links
 		if (before != NULL){
 			before->next = after;
 		}
@@ -865,7 +865,7 @@ void entry_pick(entry* e, int index){
 	}
 	
 	if (index < 0 || index >= e->length){
-		printf("Index out of range\n");
+		printf("index out of range\n");
 		return;
 	}
 
@@ -917,15 +917,17 @@ void entry_recalcsmm(entry* e){
 
 
 void entry_pluck(entry* e, int index){
+	if (index < 0 || index >= e->length){
+		printf("Index out of range\n");
+		return;
+	}
+	
 	if (e->length == 0){
 		printf("nil\n");
 		return;
 	}
 
-	if (index < 0 || index >= e->length){
-		printf("Index out of range\n");
-		return;
-	}
+	
 
 	entry_pick(e, index);
 	element* elem_to_remove = e->values+index;
@@ -1003,7 +1005,7 @@ void list_snapshots(){
 	snapshot* cursor = first_snapshot;
 
 	if (cursor == NULL){
-		printf("no entries\n");
+		printf("no snapshots\n");
 		return;
 	}
 
@@ -1339,6 +1341,15 @@ int main(void) {
 		char* command_type = args[0];
 		// printf("The command type is %s\n", command_type);
 		// printf("value evaluated: %d\n", strcasecmp(command_type, "SET"));
+
+		// Instruction order
+
+		// Set --
+
+
+
+
+
 		
 		if (strcasecmp(command_type, "SET") == 0){
 			entry* e = entry_create(args+1, args_size-1); //! TODO: Fix issue within entry_create
@@ -1436,7 +1447,12 @@ int main(void) {
 			}
 		} else if (strcasecmp(command_type, "POP") == 0){
 			entry* e = entry_get(args[1]);
-			fwrapper_entry(e, &entry_pop);
+			if (e == NULL){
+				printf("no such key\n");
+			} else {
+				entry_pop(e);
+			}
+			// fwrapper_entry(e, &entry_pop);
 			// entry_pop(e); //! Check for entry valid -> actually have some wrapper function that does that
 		} else if (strcasecmp(command_type, "FORWARD") == 0){
 			entry* e = entry_get(args[1]);
