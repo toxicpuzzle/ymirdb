@@ -917,17 +917,16 @@ void entry_recalcsmm(entry* e){
 
 
 void entry_pluck(entry* e, int index){
-	if (index < 0 || index >= e->length){
-		printf("Index out of range\n");
-		return;
-	}
-	
+
 	if (e->length == 0){
 		printf("nil\n");
 		return;
 	}
 
-	
+	if (index < 0 || index >= e->length){
+		printf("index out of range\n");
+		return;
+	}	
 
 	entry_pick(e, index);
 	element* elem_to_remove = e->values+index;
