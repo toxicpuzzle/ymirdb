@@ -971,6 +971,11 @@ void entry_pluck(entry* e, int index){
 }
 
 void entry_pop(entry* e){
+	// You cannot have an index out of range error for pop -> always check for length first
+	if (e->length == 0){
+		printf("nil");
+		return;
+	}
 	entry_pluck(e, 0);
 }
 
