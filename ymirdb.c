@@ -13,7 +13,7 @@
 #include <limits.h>
 #include "ymirdb.h"
 # define TEST 0
-#define PRINT_COMMAND 1
+#define PRINT_COMMAND 0
 
 entry* current_state;
 snapshot* first_snapshot;
