@@ -13,7 +13,7 @@
 #include <limits.h>
 #include "ymirdb.h"
 # define TEST 0
-#define PRINT_COMMAND 0
+#define PRINT_COMMAND 1
 
 entry* current_state;
 snapshot* first_snapshot;
@@ -152,6 +152,9 @@ element* elements_create(char** args, size_t args_size){
 // TODO: Include creation of complex entries i.e. ones with links to other keys (should include char* values) instead of int* values?;
 // ? Note that the keys and values must also be inputted in the order that they are stored in so we probably cannot just have int array.
 // Used to create simple entries (We create this in the main function then pass the entry around to other functions)
+
+
+// Creates an entry based on args given, connects entry to all relevant forward links (both sides)
 entry* entry_create(char** args, size_t args_size){
 	
 	if (args_size <= 1){
@@ -261,7 +264,7 @@ void entry_push(entry* e, char** args, size_t args_size){
 		} 
 	}	
 
-	free(elements);
+	free(elements); // Remove the elements array (copy is in entry)
 	entry_recalcsmm(e);
 }
 
@@ -356,11 +359,11 @@ void entry_free(entry* e){	//! Changed so entry free frees the entry and its for
 // TODO: Create entry_modify() function i.e. starts with args and just changes values, and adds forward references to existing entry. (does not create a new entry)
 
 // Testing function to look at everything in memory
-#if (TEST == 1)
+#if TEST == 1
 	void _inspect_state(){
 		entry* cursor = current_state;
 		while (cursor != NULL){
-			printf(">>> %s (Is simple: %d)\n", cursor->key, cursor->is_simple);
+			printf(">>> %s (Is simple: %d) %p\n", cursor->key, cursor->is_simple, cursor);
 			printf("Values: ");
 			for (int i = 0; i < cursor->length; i++){
 				element elem = cursor->values[i];
@@ -377,7 +380,7 @@ void entry_free(entry* e){	//! Changed so entry free frees the entry and its for
 
 			for (int i = 0; i < cursor->backward_size; i++){
 				entry* backward = cursor->backward[i];
-				printf("%s", backward->key);
+				printf("%s %p", backward->key, backward);
 				printf(" ");
 			}
 			printf("\n");
@@ -386,7 +389,7 @@ void entry_free(entry* e){	//! Changed so entry free frees the entry and its for
 			
 			for (int i = 0; i < cursor->forward_size; i++){
 				entry* forward= cursor->forward[i];
-				printf("%s", forward->key);
+				printf("%s %p", forward->key, forward);
 				printf(" ");
 			}
 			printf("\n");
@@ -449,10 +452,12 @@ entry** _entries_remove(entry** entries, size_t* entries_len, entry* rm){
 }
 
 entry** _entries_replace(entry** entries, size_t* entries_len, entry* target, entry* replacement){
-	int idx = 0;
+	
+
 	// Grab index to remove
+	int idx = 0;
 	for (; idx < *entries_len; idx++){
-		if (entries[idx] == target){
+		if (strcmp(entries[idx]->key, target->key) == 0){
 			break;
 		}
 	}
@@ -463,20 +468,23 @@ entry** _entries_replace(entry** entries, size_t* entries_len, entry* target, en
 }
 
 element* _elements_replace(element* elements, size_t* elements_len, entry* target, entry* replacement){
-	int idx = 0;
 	// Grab index to remove
+	int idx = 0;
 	for (; idx < *elements_len; idx++){
-		if (elements[idx].type == ENTRY && elements[idx].entry == target){
+		// if (elements[idx].type == ENTRY && elements[idx].entry == target){
+		if (elements[idx].type == ENTRY && strcmp(elements[idx].entry->key, target->key) == 0){
 			break;
 		}
 	}
-
+	// printf("Target: %p, Replacement: %p\n", elements[idx].entry, replacement);
 	elements[idx].entry = replacement;
+	// printf("Target: %p, Replacement: %p\n", elements[idx].entry, replacement);
 	return elements;
 }
 
 
-// When you set an element to a new value -> could lead to links to it being removed
+// makes a new entry take the place of an existing entry
+//! entry_set does not set entries back links to the right address -> may be to do with copying mechanism?
 void entry_set(entry* e){
 	// Search through current state and see if the entry with key is tehre
 	entry* existing = entry_get(e->key);
@@ -504,27 +512,34 @@ void entry_set(entry* e){
 		// }
 		// printf("\n");
 		// END test section
+		
+		_inspect_state();
 
-		// make all existing forward entries point back to new entry 
+		// Remove all backward links to current entry
 		for (int i = 0; i < existing->forward_size; i++){// TODO: Replace this with _rm_forward_link_to
 			entry* forward = existing->forward[i];
 			forward->backward = _entries_remove(forward->backward, &forward->backward_size, existing); 
 		}
 
-		// _inspect_state();
+		
 
 		// printf("Successfully removed exsiting forwad entries that point to new entry\n");
 
-		// Make all existing back entries point forward to new entry
+		
 		//! a->new b - Troublesome section here
 		//! O(n^2) if you set the entries.
+		// Make all existing back entries point forward to new replacement entry
+		// printf("Existing: %p, Replacement: %p\n", existing, e);
 		for (int i = 0; i < existing->backward_size; i++){
 			entry* backward = existing->backward[i];
 			backward->forward = _entries_replace(backward->forward, &backward->forward_size, existing, e);
 			backward->values = _elements_replace(backward->values, &backward->length, existing, e);
 		}
 
+		_inspect_state();
+
 		// printf("--------------\n");
+
 		// Make e take position of existing state
 		entry* before = existing->prev;
 		entry* after = existing->next;
@@ -548,33 +563,11 @@ void entry_set(entry* e){
 		e->backward = backward_copy;
 		// e->backward_max = existing->backward_max;
 		e->backward_size = existing->backward_size;
-
+		_inspect_state();
 		
 		entry_free(existing);
-		// _inspect_state();
-
-
-
-		// // Copy e's values to the existing e
-		// existing->values = realloc(existing->values, e->length*sizeof(element)); 
-		// memcpy(existing->values, e->values, e->length*sizeof(element));
-		// existing->length = e->length;
-		// //! Need to check if the new entry is simple
-
-		// // Copy e's forward references to the old e's forward references
-		// entry** forward_copy = calloc(e->forward_size, sizeof(entry*));
-		// memcpy(forward_copy, e->forward, e->forward_size*sizeof(entry*));
-		// free(existing->forward);
-		// existing->forward = forward_copy;
-		// existing->forward_max = e->forward_max;
-		// existing->forward_size = e->forward_size; 
-
-		// // Free the old e
-		// //! TODO -> make this call the entry_free() method! -> Actually should free this in the main method
-		// entry_free(e);
+		_inspect_state();
 	}
-
-	// If entry is there, grab back entries for that entry and attache to current entry. Free old entry's memory	
 }
 
 
@@ -706,9 +699,20 @@ entry** get_backward_links(entry* e, int* size){
 	return backwards;
 }
 
+// the elements we want to compare are of type entry* but we put &(entry*) in the args so need to double dereference
+int entry_keycomp(const void* e1, const void* e2){
+	entry** entry_1 = (entry**) e1;
+	entry** entry_2 = (entry**) e2; 
+	// printf("%s %s %d ", entry_1[0]->key, entry_2[0]->key, strcmp(entry_1[0]->key, entry_2[0]->key));
+	int result = strcmp(entry_1[0]->key, entry_2[0]->key);
+	return result;
+}
+
 void entry_forward(entry* e){
 	int size = 0;
 	entry** forward_entries = get_forward_links(e, &size);	
+	// printf("size: %d\n", size);
+	qsort(forward_entries, size, sizeof(entry*), &entry_keycomp);
 
 	// TODO: Sort to lexicographical order;
 	e->has_visited = false;
@@ -730,6 +734,7 @@ void entry_forward(entry* e){
 void entry_backward(entry* e){
 	int size = 0;
 	entry** backward_entries = get_backward_links(e, &size);	
+	qsort(backward_entries, size, sizeof(entry*), entry_keycomp);
 	// Loop through all entries and reset their visited value;
 
 	// Sort to lexicographical order;
@@ -774,10 +779,14 @@ void _rm_backward_links_to(entry* e){
 	}
 }
 
+bool entry_candel(entry* e){
+	return e->backward_size == 0;
+}
+
 void entry_delete(entry* e){
 	_inspect_state();
 
-	if (e->backward_size > 0){
+	if (!entry_candel(e)){
 		printf("You cannot delete an entry with backlinks!\n");
 		return;
 	} else {
@@ -913,6 +922,8 @@ void entry_recalcsmm(entry* e){
 	e->min = min;
 	e->max = max;
 	e->sum = sum;
+	// printf("%s: max: %d min: %d sum: %d ", e->key, e->max, e->min, e->sum);
+
 }
 
 
@@ -929,45 +940,23 @@ void entry_pluck(entry* e, int index){
 		return;
 	}
 
-	
-
 	entry_pick(e, index);
 	element* elem_to_remove = e->values+index;
-
+	item_type type = elem_to_remove->type;
 
 	// Remove backlinks to e for entries that link back to e due to e containing elem_to_remove
-	if (elem_to_remove->type == ENTRY){
+	if (type == ENTRY){
 		entry* forward = elem_to_remove->entry;
 		forward->backward =_entries_remove(forward->backward, &forward->backward_size, e); // remove back link
 		e->forward = _entries_remove(e->forward, &e->forward_size, elem_to_remove->entry); // remove forwad link
-	} else {
-		entry_recalcsmm(e);
 	}
-
-
 	
 	e->length--;
 	memmove(elem_to_remove, elem_to_remove+1, (e->length-index)*sizeof(element)); //! Address sanitizer issue -> use memmove instead?
 	e->values = realloc(e->values, e->length*sizeof(element));
-
-	// // Resize values array to fit size.
-	// // TODO: Cannot malloc sizeof 0 -> fix this
-	// if (e->length == 0){
-	// 	// Delete element array entirely.
-	// 	free(e->values);
-	// } else {
-	// 	// Remove element from element array
-	// 	memcpy(elem_to_remove, elem_to_remove+1, (e->length-index)*sizeof(element));
-	// 	e->values = realloc(e->values, e->length*sizeof(element));
-	// }
-	
-	//! Issue with realloc -> when you to  size 0 is that valid?
-
-
-	 //? Can realloc be used to shrink the amount of memory allocated? YES
-	//  free(e->values+index);; //! Does this cause double free?
-	//! Don't forget to realloc the exact amount in bytes, i.e. forgot to multiply by sizeof(element);
-	// TODO: Fix memory leak from losing the reference to the element that has been deleted, actuall no because element array here i.e. if you remove the element with realloc it's gone, only do it for element*
+	if (type == INTEGER){
+		entry_recalcsmm(e);
+	}
 }
 
 void entry_pop(entry* e){
@@ -995,7 +984,9 @@ void list_keys(){
 
 void list_entries(){
 	entry* cursor = current_state;
-
+	// TEST = 1;
+	// _inspect_state();
+	// TEST = 0;
 	if (cursor == NULL){
 		printf("no entries\n");
 		return;
@@ -1006,6 +997,7 @@ void list_entries(){
 		entry_tostring(cursor); //? Should this display the links as a letter or the elements in that next link?
 		cursor = cursor->next;
 	}
+	// _inspect_state();
 }
 
 void list_snapshots(){
@@ -1041,6 +1033,7 @@ entry* _entry_copy(entry* e){
 		return e->copy_reference;
 	}
 
+	// Store unique version of the values for copy
 	entry* copy = calloc(1, sizeof(entry));
 	element* copy_values = calloc(e->length, sizeof(element));
 
@@ -1051,6 +1044,7 @@ entry* _entry_copy(entry* e){
 
 	// Copy memory from e for the entry to copy, but clear forward/backward arrays for copies
 	memcpy(copy, e, sizeof(entry));
+	copy->values = NULL;
 	copy->backward_size = 0;
 	copy->forward_size = 0;
 	copy->backward = NULL;
@@ -1062,12 +1056,15 @@ entry* _entry_copy(entry* e){
 		element* elem_copy = copy_values + i;
 		memcpy(elem_copy, elem, sizeof(element)); //? Copy values over by default, deal with entry case as exception
 		if (elem->type == ENTRY){
-			printf("%s", elem->entry->key);
+			#if TEST == 1
+				printf("%s", elem->entry->key);
+			#endif
 			entry* forward_copy = _entry_copy(elem->entry); // TODO: Fix returning of copy reference, nvm it is working. just didn't read right?
 			
 			// Connect e to copy of forward link in both ways
-			forward_copy->backward = _entry_append(forward_copy->backward, e, (int*)&forward_copy->backward_size);
-			forward_copies = _entry_append(forward_copies, forward_copy, (int*)&forward_copies_size); //! reassignment needed due to realloc chaning addresses
+			// TODO: Check if we made a genuine copy of the forward and backward arrays
+			forward_copy->backward = _entry_append(forward_copy->backward, copy, (int*)&forward_copy->backward_size); //! 2 hours spent on figuring out that you should attach copy to back of new entry not old e (used memory address debuggin method)
+			forward_copies = _entry_append(forward_copies, forward_copy, (int*)&forward_copies_size);
 			elem_copy->type = ENTRY;
 			elem_copy->entry = forward_copy; 
 		} 
@@ -1079,24 +1076,9 @@ entry* _entry_copy(entry* e){
 	copy->forward_size = forward_copies_size;	
 	e->copy_reference = copy;
 
-	printf(" ");
 
 	return copy;
 }
-
-//? If every thing is O(n) instead of each entry, then iterating through all entries and degrees is O(n)
-			
-// 	// TODO: For general entries, think about how you would create ensure these entries are linked to the references? 
-// 	//? IDEA: When you encounter a forward link, call entry copy recursively and make attach the return value to the forward link
-// 	//? IDEA: When the returned entry comes back add its backward link to current entry
-// 	//? How to avoid double copying entries? i.e. if we already copied all in one chain, don't copy that chain again -> think of edge case where you have a->b, a->c, b, c->d
-// 		//? Store the keys we have already computed? in an array and check in function to see if key is already in (n^2 time though)
-// 		//? Store id variable for each entry in the list -> add to struct? and then use marked array i.e. constant time lookup for whether you double copied
-// 		//? Apply the same idea to deleting entries.
-// 		//! If you go this route, you will need to refactor delete and append commands by implementing a global variable for storing the number of nodes in the current state.
-// }
-
-
 
 
 //? Could create pointer to last element and just append to that 
@@ -1183,9 +1165,13 @@ void snapshot_drop(snapshot* snap){
 	snapshot* after = snap->next;
 
 	// Free up all the entries in the snapshot
-	printf("Trying to free entries in the snapshot to be dropped\n");
+	#if (TEST == 1)
+		printf("Trying to free entries in the snapshot to be dropped\n");
+	#endif
 	snapshot_free(snap->entries); //! Segfault line
-	printf("succesfully freed entries in the snapshot to be dropped\n");
+	#if (TEST == 1)
+		printf("succesfully freed entries in the snapshot to be dropped\n");
+	#endif
 
 	// Get previous snapshot to point to next snapshot and vice versa
 	if (before == NULL){
@@ -1272,16 +1258,50 @@ int snapshot_size(snapshot* snap){
 	return size;
 }
 
-void purge(char* key){
-	
+bool can_purge(char* key){
 	entry* original_state = current_state;
 	entry* to_delete;
+	snapshot* snap = first_snapshot;
 
+	while (snap != NULL){
+		current_state = snap->entries;
+		to_delete = entry_get(key);
+		if (to_delete != NULL && !entry_candel(to_delete)){
+			current_state = original_state;
+			return false;
+		}
+		snap->entries = current_state; //? Make snapshot possess correct starting entries upon deletion
+		snap = snap->next;
+	}
+
+	current_state = original_state;
+	to_delete = entry_get(key);
+	if (to_delete != NULL && !entry_candel(to_delete)){
+		return false;
+	}
+
+	return true;
+}
+
+void purge(char* key){
+
+	if (!can_purge(key)){
+		printf("not permitted\n");
+		return;
+	}
+	
+	entry* original_state = current_state;
+	entry* to_delete = NULL;
+	
 	// Find key in snapshots and delete
 	snapshot* snap = first_snapshot;
 	while (snap != NULL){
 		current_state = snap->entries;
 		to_delete = entry_get(key);
+
+		#if TEST == 1
+			printf("deleting entries in snapshot %d\n", snap->id);
+		#endif 
 		if (to_delete != NULL){
 			entry_delete(to_delete);
 		}
@@ -1417,16 +1437,25 @@ int main(void) {
 			}
 		} else if (strcasecmp(command_type, "SORT") == 0){
 			entry* e = entry_get(args[1]);
-			fwrapper_entry(e, &entry_sort);
-			// entry_sort(e);
+			if (e->is_simple == false){
+				printf("simple entry only\n");
+			} else {
+				fwrapper_entry(e, &entry_sort);
+			} 
 		} else if (strcasecmp(command_type, "REV") == 0){
 			entry* e = entry_get(args[1]);
-			fwrapper_entry(e, &entry_reverse);
-			// entry_reverse(e);
+			if (e->is_simple == false){
+				printf("simple entry only\n");
+			} else {
+				fwrapper_entry(e, &entry_reverse);
+			}
 		} else if (strcasecmp(command_type, "UNIQ") == 0){
 			entry* e = entry_get(args[1]); //TODO: add input verification and also checking that entry exists
-			fwrapper_entry(e, &entry_unique);
-			// entry_unique(e);
+			if (e->is_simple == false){
+				printf("simple entry only\n");
+			} else {
+				fwrapper_entry(e, &entry_unique);
+			}
 		} else if (strcasecmp(command_type, "PLUCK") == 0){
 			entry* e = entry_get(args[1]);
 			if (e == NULL) {

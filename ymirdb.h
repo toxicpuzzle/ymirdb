@@ -7,14 +7,18 @@
 #include <stddef.h>
 #include <sys/types.h>
 
-enum item_type {
-    INTEGER=0,
-    ENTRY=1
-};
+
 
 typedef struct element element;
 typedef struct entry entry;
 typedef struct snapshot snapshot;
+typedef enum item_type item_type;
+
+
+enum item_type {
+    INTEGER=0,
+    ENTRY=1
+};
 
 struct element {
   enum item_type type;
