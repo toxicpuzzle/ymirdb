@@ -1,11 +1,18 @@
-SET a 1
-SNAPSHOT
-SET b 2
-SNAPSHOT
-CHECKOUT 0
-LIST ENTRIES
+> ok
+
+> saved as snapshot 1
+
+> ok
+
+> saved as snapshot 2
+
+> ok
+
+> a [1]
+
+> ok
+
+> b [2]
 a [1]
-CHECKOUT 1
-LIST ENTRIES
-a [1]
-b [2]
+
+> bye

@@ -13,30 +13,11 @@
 #include <limits.h>
 #include "ymirdb.h"
 #define TEST 0
-#define PRINT_COMMAND 1
+#define PRINT_COMMAND 0
 #define MSG_NOKEY printf("no such key\n");
 #define MSG_NOSNAP printf("no such snapshot\n");
 #define MSG_NOPERM printf("not permitted\n");
 #define MSG_OK printf("ok\n");
-
-
-
-// entry* current_state;
-// snapshot* latest_snapshot;
-
-//
-// We recommend that you design your program to be
-// modular where each function performs a small task
-//
-// e.g.
-//
-// command_bye
-// command_help
-// ...
-// entry_add
-// entry_delete
-// ...
-//
 
 entry** get_forward_links(entry* e, int* size);
 void entry_recalcsmm(entry* e);
@@ -75,6 +56,7 @@ void command_help() {
 	printf("%s", HELP);
 }
 
+// Returns if a string follows a numeric format (positive/negative int)
 bool string_isnumeric(char* string){
 	char* cursor = string;
 	if (*cursor == '-'){
@@ -114,7 +96,7 @@ void entry_tostring(entry* e){
 }	
 
 
-//! Not to be confused with the command -> just returns the entry
+// Returns an entry given the key and the current state's last entry
 entry* entry_get(char* key, entry** current_state_ptr){
 	// Perform linear search over current database
 	entry* cursor = *current_state_ptr;
@@ -131,6 +113,7 @@ entry* entry_get(char* key, entry** current_state_ptr){
 //! getting backward references works properly, but forward references results in extra (null) printed
 // Connects e to forward by first resizing reference arrays and own size variables and then by adding references
 void entry_connect(entry* e, entry* forward){
+
 	// Resize the memory 
 	e->forward_size++;
 	e->forward = realloc(e->forward, (e->forward_size)*sizeof(entry*));
@@ -144,6 +127,7 @@ void entry_connect(entry* e, entry* forward){
 }
 
 // TODO: Make this return information about how some of the elements that were created were not simple! pass is simple boolean by arg?
+// Creates values array for entry from cmdline args and the current state
 element* elements_create(char** args, size_t args_size, entry** current_state_ptr){
 	element* elements = calloc(args_size, sizeof(element)); 
 	for (int i = 0; i < args_size; i++){
@@ -169,6 +153,7 @@ element* elements_create(char** args, size_t args_size, entry** current_state_pt
 // ? Note that the keys and values must also be inputted in the order that they are stored in so we probably cannot just have int array.
 // Used to create simple entries (We create this in the main function then pass the entry around to other functions)
 
+// Returns if a key is a valid key that is alphabetical and of valid length
 bool key_isvalid(char* key){
 	if (!isalpha(*key) || strlen(key) > 15) return false;
 	return true;
@@ -805,7 +790,7 @@ void entry_forward(entry* e){
 	}
 
 	if (size == 0){
-		printf("nil\n\n");
+		printf("nil\n");
 	} else {
 		free(forward_entries);
 		printf("\n");
@@ -1409,14 +1394,12 @@ int main(void) {
 	char line[MAX_LINE];	
 	int next_snap_id = 1;
 
-	// snapshot* snapshots; // TODO: Add support for creating snapshots of the current state (deep copies) for simple entries;
 	entry* current_state = NULL; 
 	snapshot* latest_snapshot = NULL;
 
 	while (true) {
 		printf("> ");
 	
-		//? Quit if the user does not enter anything as a command -> don't forget to free memory afterwards
 		if (NULL == fgets(line, MAX_LINE, stdin)) {
 			printf("\n");
 			program_clear(&current_state, &latest_snapshot);
@@ -1426,7 +1409,7 @@ int main(void) {
 
 		// Process multiple arguments to the command line
 		# if (PRINT_COMMAND == 1)
-			printf("%s\n", line);
+			printf("%s", line);
 		#endif
 
 		char* word = strtok(line, " \n\r"); 
@@ -1443,10 +1426,6 @@ int main(void) {
 			free(args);
 			continue;
 		}
-		// printf("The command type is %s\n", command_type);
-		// printf("value evaluated: %d\n", strcasecmp(command_type, "SET"));
-
-		// Instruction order
 		
 		if (strcasecmp(command_type, "SET") == 0){
 			entry* e = entry_create(args+1, args_size-1, &current_state); 
@@ -1592,9 +1571,8 @@ int main(void) {
 			}
 		}  else if (strcasecmp(command_type, "TYPE") == 0){
 			entry* e = entry_get(args[1], &current_state);
-			fwrapper_entry(e, &entry_type);
 			if (e == NULL) {
-				printf("no such key\n"); //TODO: Use function pointers (create wrapper function) to call any functions that use the get entry method.
+				MSG_NOKEY //TODO: Use function pointers (create wrapper function) to call any functions that use the get entry method.
 			} else {
 				entry_type(e);
 			}
@@ -1655,7 +1633,7 @@ int main(void) {
 			command_bye();
 			program_clear(&current_state, &latest_snapshot); 
 			free(args);
-			return -1;
+			return 0;
 		}
 
 		printf("\n");
