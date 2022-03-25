@@ -1,0 +1,134 @@
+> SET a 1 2 3
+
+ok
+
+> SET b -1 0 1
+
+ok
+
+> SET c 10 20 30
+
+ok
+
+> PUSH b c
+
+ok
+
+> PUSH a b
+
+ok
+
+> PUSH a c
+
+ok
+
+> SNAPSHOT
+
+saved as snapshot 1
+
+> PLUCK a 2
+
+b
+
+> SNAPSHOT
+
+saved as snapshot 2
+
+> PLUCK b 2
+
+-1
+
+> SNAPSHOT
+
+saved as snapshot 3
+
+> PLUCK c 2
+
+20
+
+> SNAPSHOT
+
+saved as snapshot 4
+
+> DROP 1
+
+
+> DROP 3
+
+
+> DROP 4
+
+
+> LIST SNAPSHOTS
+
+2
+
+> ROLLBACK 1
+
+Cannot rollback to snapshot with id: 1 as this id does not exist in the database
+
+> ROLLBACK 2
+
+
+> SET d1d 34 10 2
+
+ok
+
+> LIST ENTRIES
+
+d1d [34 10 2]
+c [10 20 30]
+b [c -1 0 1]
+a [c 1 2 3]
+
+> SNAPSHOT
+
+saved as snapshot 5
+
+> LIST SNAPSHOTS
+
+5
+2
+
+> DROP 5
+
+
+> PURGE a
+
+
+> BACKWARD c
+
+b
+ok
+
+> FORWARD a
+
+no such key
+
+> FORWARD b
+
+c
+ok
+
+> FORWARD d1d
+
+nil
+
+ok
+
+> LIST ENTRIES
+
+d1d [34 10 2]
+c [10 20 30]
+b [c -1 0 1]
+
+> SNAPSHOT
+
+saved as snapshot 6
+
+> LIST SNAPSHOTS
+6
+2
+
+>
+bye

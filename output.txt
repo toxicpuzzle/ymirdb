@@ -1,0 +1,704 @@
+bash test.sh
+ 
+===== Executing test case: tests/append_general =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> d [1]
+c [1]
+b [1]
+a [1 b c d]
+
+> a 
+
+> ok
+
+> ok
+
+> e [1]
+d [1]
+c [1]
+b [1]
+a [1 b c d e]
+
+> not permitted
+
+> e [1]
+d [1]
+c [1]
+b [1]
+a [1 b c d e]
+
+> not permitted
+
+> e [1]
+d [1]
+c [1]
+b [1]
+a [1 b c d e]
+
+> ok
+
+> e [1]
+d [1]
+c [1]
+b [1]
+
+> bye
+ 
+===== Executing test case: tests/del_general =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> e [b a]
+b [1]
+a [1]
+
+> ok
+
+> b [1]
+a [1]
+
+> ok
+
+> b [1]
+a [1 b]
+
+> 
+bye
+ 
+===== Executing test case: tests/drop_fail_no_snap =====
+ 
+> ok
+
+> saved as snapshot 1
+
+> ok
+
+> ok
+
+> saved as snapshot 2
+
+> 2
+
+> ok
+
+> hello [1]
+b [2]
+a [1]
+
+> saved as snapshot 3
+
+> 3
+2
+
+> ok
+
+> hello [1]
+b [2]
+a [1]
+
+> no such snapshot
+
+> no such snapshot
+
+> hello [1]
+b [2]
+a [1]
+
+> no such snapshot
+
+> hello [1]
+b [2]
+a [1]
+
+> 
+bye
+ 
+===== Executing test case: tests/purge_fail_snap_backward =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> saved as snapshot 1
+
+> not permitted
+
+> d [a b c]
+a [1 2 b c]
+b [3 5 c]
+c [7]
+
+> not permitted
+
+> ok
+
+> d [a b c]
+a [1 2 b c]
+b [3 5 c]
+c [7]
+
+> saved as snapshot 2
+
+> ok
+
+> ok
+
+> ok
+
+> not permitted
+
+> b [1 2 3]
+c [7]
+
+> not permitted
+
+> b [1 2 3]
+c [7]
+
+> not permitted
+
+> not permitted
+
+> ok
+
+> b [1 2 3]
+c [7]
+
+> bye
+ 
+===== Executing test case: tests/purge_no_garbage =====
+ 
+> ok
+
+> ok
+
+> no entries
+
+> ok
+
+> a [1]
+
+> saved as snapshot 1
+
+> ok
+
+> saved as snapshot 2
+
+> 2
+1
+
+> ok
+
+> b [11]
+a [1 2]
+
+> ok
+
+> b [11]
+
+> ok
+
+> no entries
+
+> ok
+
+> no entries
+
+> bye
+ 
+===== Executing test case: tests/purge_sample =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> saved as snapshot 1
+
+> ok
+
+> b [3 5 c]
+c [7]
+
+> no such key
+
+> ok
+
+> a [1 2 b]
+b [3 5 c]
+c [7]
+
+> saved as snapshot 2
+
+> ok
+
+> not permitted
+
+> a [1 2 b]
+b [1 2 3]
+c [7]
+
+> ok
+
+> b [1 2 3]
+c [7]
+
+> ok
+
+> b [3 5 c]
+c [7]
+
+> ok
+
+> b [3 5 c]
+c [7]
+
+> bye
+ 
+===== Executing test case: tests/pyramid =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> b c d e f g h 
+
+> a b c d e f 
+
+> 0
+
+> 101
+
+> 2711
+
+> 46
+
+> h
+
+> d
+
+> index out of range
+
+> 1
+
+> 17
+
+> 101
+
+> 101
+
+> 1585
+
+> 30
+
+> 99
+
+> b c d e f g h 
+
+> h [99]
+g [h]
+f [h g 23]
+e [1 2 h f]
+d [h g 1 0 2]
+c [22 16 f g d]
+b [c f e 2 56 78]
+a [23 e b]
+
+> not permitted
+
+> saved as snapshot 1
+
+> ok
+
+> saved as snapshot 2
+
+> ok
+
+> saved as snapshot 3
+
+> ok
+
+> not permitted
+
+> ok
+
+> not permitted
+
+> ok
+
+> 1
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> h [99]
+g [h]
+f [h g 23]
+e [1 2 h f]
+
+> bye
+ 
+===== Executing test case: tests/rollback_simple =====
+ 
+> ok
+
+> saved as snapshot 1
+
+> ok
+
+> saved as snapshot 2
+
+> ok
+
+> saved as snapshot 3
+
+> 3
+2
+1
+
+> c [3]
+b [2]
+a [1]
+
+> ok
+
+> no such snapshot
+
+> no such snapshot
+
+> a [1]
+
+> 1
+
+> ok
+
+> a [1]
+
+> bye
+ 
+===== Executing test case: tests/snap_general_diamond =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> f [1]
+e [f]
+d [e]
+c [e]
+b [c d]
+a [b]
+
+> saved as snapshot 1
+
+> ok
+
+> ok
+
+> f [1]
+e [f]
+d [e 1]
+c [e]
+b [c d]
+
+> saved as snapshot 2
+
+> ok
+
+> ok
+
+> f [1]
+e [f]
+d [e 2]
+c [e]
+
+> saved as snapshot 3
+
+> ok
+
+> ok
+
+> f [1]
+e [f]
+d [e 3]
+
+> 3
+2
+1
+
+> ok
+
+> f [1]
+e [f]
+d [e]
+c [e]
+b [c d]
+a [b]
+
+> ok
+
+> f [1]
+e [f]
+d [e 1]
+c [e]
+b [c d]
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> no entries
+
+> ok
+
+> f [1]
+e [f]
+d [e 2]
+c [e]
+
+> bye
+ 
+===== Executing test case: tests/snap_simple =====
+ 
+> ok
+
+> saved as snapshot 1
+
+> ok
+
+> saved as snapshot 2
+
+> ok
+
+> a [1]
+
+> ok
+
+> b [2]
+a [1]
+
+> bye
+ 
+===== Executing test case: tests/snap_success_id =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> saved as snapshot 1
+
+> b
+
+> saved as snapshot 2
+
+> -1
+
+> saved as snapshot 3
+
+> 20
+
+> saved as snapshot 4
+
+> ok
+
+> ok
+
+> ok
+
+> 2
+
+> no such snapshot
+
+> ok
+
+> ok
+
+> d1d [34 10 2]
+c [10 20 30]
+b [c -1 0 1]
+a [c 1 2 3]
+
+> saved as snapshot 5
+
+> 5
+2
+
+> ok
+
+> ok
+
+> b 
+
+> no such key
+
+> c 
+
+> nil
+
+> d1d [34 10 2]
+c [10 20 30]
+b [c -1 0 1]
+
+> saved as snapshot 6
+
+> 6
+2
+
+> bye
+ 
+===== Executing test case: tests/snap_success_memory =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> saved as snapshot 1
+
+> b
+
+> saved as snapshot 2
+
+> -1
+
+> saved as snapshot 3
+
+> 20
+
+> saved as snapshot 4
+
+> ok
+
+> c [10 20 30]
+b [c -1 0 1]
+a [c b 1 2 3]
+
+> b c 
+
+> a b 
+
+> 126
+
+> ok
+
+> c [10 20 30]
+b [c -1 0 1]
+a [c 1 2 3]
+
+> c 
+
+> a b 
+
+> 66
+
+> ok
+
+> c [10 20 30]
+b [c 0 1]
+a [c 1 2 3]
+
+> c 
+
+> a b 
+
+> 66
+
+> 61
+
+> 4
+3
+2
+1
+
+> bye

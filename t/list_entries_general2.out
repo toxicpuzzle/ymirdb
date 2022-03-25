@@ -1,0 +1,5 @@
+> SET a 1 2
+> SET b 4 a 6
+> LIST ENTRIES
+a [1 2]
+b [4 a 6]
