@@ -1419,6 +1419,7 @@ int main(void) {
 		//? Quit if the user does not enter anything as a command -> don't forget to free memory afterwards
 		if (NULL == fgets(line, MAX_LINE, stdin)) {
 			printf("\n");
+			program_clear(&current_state, &latest_snapshot);
 			command_bye();
 			return 0;
 		}
@@ -1438,6 +1439,10 @@ int main(void) {
 		}
 	
 		char* command_type = args[0];
+		if (command_type == NULL){
+			free(args);
+			continue;
+		}
 		// printf("The command type is %s\n", command_type);
 		// printf("value evaluated: %d\n", strcasecmp(command_type, "SET"));
 
