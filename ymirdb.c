@@ -21,8 +21,8 @@
 
 
 
-// entry* current_state;
-// snapshot* latest_snapshot;
+entry* current_state;
+snapshot* latest_snapshot;
 
 //
 // We recommend that you design your program to be
@@ -115,9 +115,9 @@ void entry_tostring(entry* e){
 
 
 //! Not to be confused with the command -> just returns the entry
-entry* entry_get(char* key, entry** current_state_ptr){
+entry* entry_get(char* key){
 	// Perform linear search over current database
-	entry* cursor = *current_state_ptr;
+	entry* cursor = current_state;
 	while (cursor != NULL){
 		if (strcmp(key, cursor->key) == 0){
 			return cursor;
@@ -144,7 +144,7 @@ void entry_connect(entry* e, entry* forward){
 }
 
 // TODO: Make this return information about how some of the elements that were created were not simple! pass is simple boolean by arg?
-element* elements_create(char** args, size_t args_size, entry** current_state_ptr){
+element* elements_create(char** args, size_t args_size){
 	element* elements = calloc(args_size, sizeof(element)); 
 	for (int i = 0; i < args_size; i++){
 		element* current_elem = elements + i;
@@ -154,7 +154,7 @@ element* elements_create(char** args, size_t args_size, entry** current_state_pt
 			current_elem->value = atoi(current_arg);
 		} else {
 			current_elem->type = ENTRY;
-			entry* forward_link = entry_get(current_arg, current_state_ptr);
+			entry* forward_link = entry_get(current_arg);
 			current_elem->entry = forward_link;
 			//! Think about how to added forward link to the back of the entry referenced.
 			// forward_link->backward
@@ -176,7 +176,7 @@ bool key_isvalid(char* key){
 
 
 // Creates an entry based on args given, connects entry to all relevant forward links (both sides)
-entry* entry_create(char** args, size_t args_size, entry** current_state_ptr){
+entry* entry_create(char** args, size_t args_size){
 
 	if (args_size <= 1){
 		printf("Cannot create an an entry with no key or with a key but has no values\n");
@@ -199,7 +199,7 @@ entry* entry_create(char** args, size_t args_size, entry** current_state_ptr){
 		char* arg = args[i];
 		if (string_isnumeric(arg) == false){
 			e->is_simple = false;
-			entry* forward_link = entry_get(arg, current_state_ptr);
+			entry* forward_link = entry_get(arg);
 			
 			if (forward_link == NULL){
 				MSG_NOKEY
@@ -217,7 +217,7 @@ entry* entry_create(char** args, size_t args_size, entry** current_state_ptr){
 	memcpy(e->key, key, strlen(key)+1);
 
 	// Set elements for entry
-	e->values = elements_create(args+1, args_size-1, current_state_ptr);
+	e->values = elements_create(args+1, args_size-1);
 	e->length = args_size-1;
 
 	// Set max, min, sum
@@ -227,22 +227,22 @@ entry* entry_create(char** args, size_t args_size, entry** current_state_ptr){
 }
 
 // Adds the entry to the database state (current_state)
-void state_push(entry* e, entry** current_state_ptr){
-	if (*current_state_ptr == NULL){
-		*current_state_ptr = e;
+void state_push(entry* e){
+	if (current_state == NULL){
+		current_state = e;
 	} else {
 		// Add the entry to stack (current_state)
-		entry* old_state = *current_state_ptr;
-		*current_state_ptr = e;
-		(*current_state_ptr)->next = old_state;
-		old_state->prev = *current_state_ptr;
+		entry* old_state = current_state;
+		current_state = e;
+		current_state->next = old_state;
+		old_state->prev = current_state;
 	}
 }
 
-// Appends values to an entry's values array
-void entry_append(entry* e, char** args, size_t args_size, entry** current_state_ptr){
+//TODO: Test this
+void entry_append(entry* e, char** args, size_t args_size){
 	// Create array of elements to attach to the entry
-	element* elements = elements_create(args, args_size, current_state_ptr);
+	element* elements = elements_create(args, args_size);
 	int old_length = e->length;
 	e->length = e->length + args_size;
 	e->values = realloc(e->values,	(e->length)*sizeof(element)); 
@@ -262,17 +262,16 @@ void entry_append(entry* e, char** args, size_t args_size, entry** current_state
 
 }
 
-// Reverses an array in O(n) time
 void _reverse_array(void* array, int length, size_t size){
 	for (int i = 0; i < length/2; i++){
 		swap(array, i, length-i-1, size);
 	}
 }
 
-// Pushes values to an entry's values array
-void entry_push(entry* e, char** args, size_t args_size, entry** current_state_ptr){
+//! Fix error of not mallocing sufficiently!
+void entry_push(entry* e, char** args, size_t args_size){
 	// Create array of elements to attach to the entry
-	element* elements = elements_create(args, args_size, current_state_ptr);
+	element* elements = elements_create(args, args_size);
 	_reverse_array((void*)elements, (int)args_size, sizeof(element));
 	e->length = e->length + args_size;
 	e->values = realloc(e->values,	(e->length)*sizeof(element)); 
@@ -291,7 +290,6 @@ void entry_push(entry* e, char** args, size_t args_size, entry** current_state_p
 	entry_recalcsmm(e);
 }
 
-// Prints out the minimum value for an entry
 void entry_min(entry* e){
 	int min = e->min;
 	int forward_size = 0;
@@ -312,7 +310,6 @@ void entry_min(entry* e){
 
 }
 
-// Prints out the maximum value for an entry
 void entry_max(entry* e){
 	int max = e->max;
 	int forward_size = 0;
@@ -332,7 +329,6 @@ void entry_max(entry* e){
 	}
 }
 
-// Helper function to calculate sum for entries
 int _calculate_sum(entry* e){
 	int sum = e->sum;
 	for (int i = 0; i < e->forward_size; i++){
@@ -341,7 +337,6 @@ int _calculate_sum(entry* e){
 	return sum;
 }
 
-// Helper function to calculate length for entries
 int _calculate_len(entry* e){
 	int len = e->length - e->forward_size;
 	for (int i = 0; i < e->forward_size; i++){
@@ -397,7 +392,7 @@ int entry_len(entry* e){
 	return len;
 }
 
-// Frees an entry and all its associated arrays
+//! Careful with this one! You don't want memory leaks
 void entry_free(entry* e){	//! Changed so entry free frees the entry and its forward references -> causes memory issues elsewhere.
 	// Free all values pointed to by e
 	if (e->values != NULL) free(e->values);
@@ -568,11 +563,11 @@ element* _elements_replace(element* elements, size_t* elements_len, entry* targe
 
 // makes a new entry take the place of an existing entry
 //! entry_set does not set entries back links to the right address -> may be to do with copying mechanism?
-void entry_set(entry* e, entry** current_state_ptr){
+void entry_set(entry* e){
 	// Search through current state and see if the entry with key is tehre
-	entry* existing = entry_get(e->key, current_state_ptr);
+	entry* existing = entry_get(e->key);
 	if (existing == NULL){
-		state_push(e, current_state_ptr); // TODO: Consider whether you should by default push or append?
+		state_push(e); // TODO: Consider whether you should by default push or append?
 	} else {
 
 		//! Fix the segfault error when you do b 2 d
@@ -633,8 +628,7 @@ void entry_set(entry* e, entry** current_state_ptr){
 		if (before != NULL){
 			before->next = e;
 		} else {
-			// current_state = e;
-			*current_state_ptr = e;
+			current_state = e;
 		}
 
 		if (after != NULL){
@@ -658,7 +652,7 @@ void entry_set(entry* e, entry** current_state_ptr){
 
 
 
-// Reverses and entry
+
 void entry_reverse(entry* e){
 	if (e->is_simple == false){
 		printf("Cannot reverse an entry that is not simple!\n");
@@ -684,7 +678,7 @@ entry** _entries_append(entry** list, entry* e, int* list_size){
 	return list;
 }
 
-void entry_clear_visits(entry* current_state){
+void entry_clear_visits(){
 	entry* cursor = current_state;
 	while (cursor != NULL){
 		cursor->has_visited = false;
@@ -865,7 +859,7 @@ bool entry_candel(entry* e){
 	return e->backward_size == 0;
 }
 
-void entry_delete(entry* e, entry** current_state_ptr){
+void entry_delete(entry* e){
 	_inspect_state();
 
 	if (!entry_candel(e)){
@@ -886,8 +880,8 @@ void entry_delete(entry* e, entry** current_state_ptr){
 		}
 
 		// Reset current state
-		if ((*current_state_ptr)->key == e->key){
-			*current_state_ptr = e->next;
+		if (current_state->key == e->key){
+			current_state = e->next;
 		}	
 
 		entry_free(e);
@@ -1034,8 +1028,8 @@ void entry_pop(entry* e){
 	entry_pluck(e, 0);
 }
 
-void list_keys(entry** current_state_ptr){
-	entry* cursor = *current_state_ptr;
+void list_keys(){
+	entry* cursor = current_state;
 
 	if (cursor == NULL){
 		printf("no keys\n");
@@ -1048,8 +1042,8 @@ void list_keys(entry** current_state_ptr){
 	}
 }
 
-void list_entries(entry** current_state_ptr){
-	entry* cursor = *current_state_ptr;
+void list_entries(){
+	entry* cursor = current_state;
 	// TEST = 1;
 	// _inspect_state();
 	// TEST = 0;
@@ -1066,8 +1060,8 @@ void list_entries(entry** current_state_ptr){
 	// _inspect_state();
 }
 
-void list_snapshots(snapshot** latest_snap_ptr){
-	snapshot* cursor = *latest_snap_ptr;
+void list_snapshots(){
+	snapshot* cursor = latest_snapshot;
 
 	if (cursor == NULL){
 		printf("no snapshots\n");
@@ -1080,8 +1074,8 @@ void list_snapshots(snapshot** latest_snap_ptr){
 	}
 }
 
-snapshot* snapshot_get(int id, snapshot** latest_snap_ptr){
-	snapshot* cursor = *latest_snap_ptr;
+snapshot* snapshot_get(int id){
+	snapshot* cursor = latest_snapshot;
 	while (cursor != NULL){
 		if (id == cursor->id){
 			return cursor;
@@ -1149,13 +1143,13 @@ entry* _entry_copy(entry* e){
 
 //? Could create pointer to last element and just append to that 
 // Sets the correct next and prev pointers for the snapshot to be appended.
-void snapshot_append(snapshot* snap, snapshot** latest_snap_ptr){
-	if (*latest_snap_ptr == NULL){
-		*latest_snap_ptr = snap;
+void snapshot_append(snapshot* snap){
+	if (latest_snapshot == NULL){
+		latest_snapshot = snap;
 	} else {
-		(*latest_snap_ptr)->next = snap;
-		snap->prev = (*latest_snap_ptr);
-		(*latest_snap_ptr) = snap;
+		latest_snapshot->next = snap;
+		snap->prev = latest_snapshot;
+		latest_snapshot = snap;
 	}
 }
 
@@ -1208,9 +1202,8 @@ snapshot* snapshot_create(entry* entries, int id){
 	return new_snapshot;
 }
 
-// Free up all the entries in the snapshot
 void snapshot_free(entry* entries){
-	
+	// Free up all the entries in the snapshot
 	entry* cursor = entries;
 	entry* old = NULL;
 	while (cursor != NULL){
@@ -1224,7 +1217,7 @@ void snapshot_free(entry* entries){
 
 //! Bug: If you delete a snapsot when there is only one snapshots, subsequent snapshots added will not be found.
 //? error handling done by the main function
-void snapshot_drop(snapshot* snap, snapshot** latest_snap_ptr){
+void snapshot_drop(snapshot* snap){
 	snapshot* before = snap->prev;
 	snapshot* after = snap->next;
 
@@ -1246,8 +1239,8 @@ void snapshot_drop(snapshot* snap, snapshot** latest_snap_ptr){
 		before->next = after;
 	}
 	
-	if (snap->id == (*latest_snap_ptr)->id){
-		*latest_snap_ptr = before;
+	if (snap->id == latest_snapshot->id){
+		latest_snapshot = before;
 		// if (latest_snapshot != NULL){
 		// 	latest_snapshot->next = NULL;
 		// }
@@ -1281,24 +1274,24 @@ void snapshot_drop(snapshot* snap, snapshot** latest_snap_ptr){
 
 }
 
-void program_clear(entry** current_state_ptr, snapshot** latest_snap_ptr){
-	snapshot* cursor = *latest_snap_ptr; 
+void program_clear(){
+	snapshot* cursor = latest_snapshot; 
 	snapshot* old;
 
-	snapshot_free(*current_state_ptr); 
+	snapshot_free(current_state); 
 
 	while (cursor != NULL){
 		old = cursor;
 		cursor = cursor->prev;
-		snapshot_drop(old, latest_snap_ptr);
+		snapshot_drop(old);
 	}
 }
 
-void snapshot_rollback(snapshot* snap, entry** current_state_ptr, snapshot** latest_snap_ptr){
-	snapshot* cursor = *latest_snap_ptr; 
+void snapshot_rollback(snapshot* snap){
+	snapshot* cursor = latest_snapshot; 
 	snapshot* old;
 
-	snapshot_free(*current_state_ptr);
+	snapshot_free(current_state);
 
 	// Got the snapshot we want (deleting snapshots along the way)
 	while (cursor != NULL){
@@ -1307,28 +1300,28 @@ void snapshot_rollback(snapshot* snap, entry** current_state_ptr, snapshot** lat
 		}
 		old = cursor;
 		cursor = cursor->prev;
-		snapshot_drop(old, latest_snap_ptr);
+		snapshot_drop(old);
 	}
 
 	// Create copy of snapshot we want to rollback to
 	snapshot* snap_copy = snapshot_create(cursor->entries, 0); //! snapshot id does not matter here as we just want the entries
-	*current_state_ptr = snap_copy->entries;
+	current_state = snap_copy->entries;
 	free(snap_copy);
 	// Clear the current state (//TODO: Implement deep delete function alongside deep copy function)
 }
 
 //! When you checkout to an entry and then drop that entry whilst you're in the snapshot -> you get junk values when you list entries.
-void snapshot_checkout(snapshot* snap, entry** current_state_ptr){
+void snapshot_checkout(snapshot* snap){
 	// Free current state
-	snapshot_free(*current_state_ptr);
+	snapshot_free(current_state);
 	snapshot* snap_copy = snapshot_create(snap->entries, 0);
-	*current_state_ptr = snap_copy->entries;
+	current_state = snap_copy->entries;
 	free(snap_copy); //? don't need id for copy of snapshot
 }
 
-snapshot* snapshot_save(int id, entry** current_state_ptr, snapshot** latest_snap_ptr){
-	snapshot* new_snapshot = snapshot_create(*current_state_ptr, id);  //! Snapshots are not freed?
-	snapshot_append(new_snapshot, latest_snap_ptr);
+snapshot* snapshot_save(int id){
+	snapshot* new_snapshot = snapshot_create(current_state, id);  //! Snapshots are not freed?
+	snapshot_append(new_snapshot);
 	return new_snapshot;
 }
 
@@ -1343,24 +1336,24 @@ int snapshot_size(snapshot* snap){
 }
 
 // Returns false if a key with back entries is found in snapshots or current state
-bool can_purge(char* key, entry** current_state_ptr, snapshot** latest_snap_ptr){
-	entry* original_state = *current_state_ptr;
+bool can_purge(char* key){
+	entry* original_state = current_state;
 	entry* to_delete;
-	snapshot* snap = *latest_snap_ptr;
+	snapshot* snap = latest_snapshot;
 
 	while (snap != NULL){
-		*current_state_ptr = snap->entries;
-		to_delete = entry_get(key, current_state_ptr);
+		current_state = snap->entries;
+		to_delete = entry_get(key);
 		if (to_delete != NULL && !entry_candel(to_delete)){
-			*current_state_ptr = original_state;
+			current_state = original_state;
 			return false;
 		}
-		snap->entries = *current_state_ptr; //? Make snapshot possess correct starting entries upon deletion
+		snap->entries = current_state; //? Make snapshot possess correct starting entries upon deletion
 		snap = snap->prev;
 	}
 
-	*current_state_ptr = original_state;
-	to_delete = entry_get(key, current_state_ptr);
+	current_state = original_state;
+	to_delete = entry_get(key);
 	if (to_delete != NULL && !entry_candel(to_delete)){
 		return false;
 	}
@@ -1368,38 +1361,38 @@ bool can_purge(char* key, entry** current_state_ptr, snapshot** latest_snap_ptr)
 	return true;
 }
 
-void purge(char* key, entry** current_state_ptr, snapshot** latest_snap_ptr){
+void purge(char* key){
 
-	if (!can_purge(key, current_state_ptr, latest_snap_ptr)){
+	if (!can_purge(key)){
 		printf("not permitted\n");
 		return;
 	}
 	
-	entry* original_state = *current_state_ptr;
+	entry* original_state = current_state;
 	entry* to_delete = NULL;
 	
 	// Find key in snapshots and delete
-	snapshot* snap = *latest_snap_ptr;
+	snapshot* snap = latest_snapshot;
 	while (snap != NULL){
-		*current_state_ptr = snap->entries;
-		to_delete = entry_get(key, current_state_ptr);
+		current_state = snap->entries;
+		to_delete = entry_get(key);
 
 		#if TEST == 1
 			printf("deleting entries in snapshot %d\n", snap->id);
 		#endif 
 		if (to_delete != NULL){
-			entry_delete(to_delete, current_state_ptr);
+			entry_delete(to_delete);
 		}
-		snap->entries = *current_state_ptr; //? Make snapshot possess correct starting entries upon deletion
+		snap->entries = current_state; //? Make snapshot possess correct starting entries upon deletion
 		snap = snap->prev;
 	}
 
 	// Restore original state after purging
 	// Find key in current database and delete
-	*current_state_ptr = original_state;
-	to_delete = entry_get(key, current_state_ptr);
+	current_state = original_state;
+	to_delete = entry_get(key);
 	if (to_delete != NULL){
-		entry_delete(to_delete, current_state_ptr);
+		entry_delete(to_delete);
 	} 
 
 }
@@ -1409,13 +1402,15 @@ int main(void) {
 	char line[MAX_LINE];	
 	int next_snap_id = 1;
 
+
+
 	// snapshot* snapshots; // TODO: Add support for creating snapshots of the current state (deep copies) for simple entries;
-	entry* current_state = NULL; 
-	snapshot* latest_snapshot = NULL;
+	current_state = NULL; 
 
 	while (true) {
 		printf("> ");
 	
+
 		//? Quit if the user does not enter anything as a command -> don't forget to free memory afterwards
 		if (NULL == fgets(line, MAX_LINE, stdin)) {
 			printf("\n");
@@ -1442,98 +1437,99 @@ int main(void) {
 		// printf("value evaluated: %d\n", strcasecmp(command_type, "SET"));
 
 		// Instruction order
+
 		
 		if (strcasecmp(command_type, "SET") == 0){
-			entry* e = entry_create(args+1, args_size-1, &current_state); 
+			entry* e = entry_create(args+1, args_size-1); 
 			if (e != NULL){
-				entry_set(e, &current_state);
+				entry_set(e);
 				MSG_OK
 			}
 		} else if (strcasecmp(command_type, "PUSH") == 0){
-			entry* e = entry_get(args[1], &current_state);
+			entry* e = entry_get(args[1]);
 			if (e == NULL) {
 				MSG_NOKEY
 			} else {
-				entry_push(e, args+2, args_size-2, &current_state); //TODO: make it so teh push is not atoi
+				entry_push(e, args+2, args_size-2); //TODO: make it so teh push is not atoi
 				MSG_OK
 			}
 		} else if (strcasecmp(command_type, "APPEND") == 0){
-			entry* e = entry_get(args[1], &current_state); //? +1 so that we don't include the command in the arguments used to build the entry
+			entry* e = entry_get(args[1]); //? +1 so that we don't include the command in the arguments used to build the entry
 			if (e == NULL){
 				MSG_NOKEY
 			} else {
-				entry_append(e, args+2, args_size-2, &current_state);
+				entry_append(e, args+2, args_size-2);
 				MSG_OK
 			}
 		} else if (strcasecmp(command_type, "GET") == 0){
-			entry* e = entry_get(args[1], &current_state);
+			entry* e = entry_get(args[1]);
 			if (e == NULL) {
 				MSG_NOKEY
 			} else {
 				entry_tostring(e);
 			}
 		} else if (strcasecmp(command_type, "DEL") == 0){
-			entry* e = entry_get(args[1], &current_state);
+			entry* e = entry_get(args[1]);
 			if (e == NULL){
 				MSG_NOKEY
 			} else if (!entry_candel(e)){
 				MSG_NOPERM
 			} else {
-				entry_delete(e, &current_state);
+				entry_delete(e);
 				MSG_OK
 			}
 			// fwrapper_entry(e, &entry_delete);
 		} else if (strcasecmp(command_type, "MIN") == 0){
-			entry* e = entry_get(args[1], &current_state);
+			entry* e = entry_get(args[1]);
 			if (e == NULL) {
 				MSG_NOKEY
 			} else {
 				entry_min(e);
 			}			
 		} else if (strcasecmp(command_type, "MAX") == 0){
-			entry* e = entry_get(args[1], &current_state);
+			entry* e = entry_get(args[1]);
 			if (e == NULL) {
 				MSG_NOKEY
 			} else {
 				entry_max(e);
 			}	
 		} else if (strcasecmp(command_type, "SUM") == 0){
-			entry* e = entry_get(args[1], &current_state); // TODO: Add local sum, max, len so you don't have to sum degrees.
+			entry* e = entry_get(args[1]); // TODO: Add local sum, max, len so you don't have to sum degrees.
 			if (e == NULL){
 				MSG_NOKEY
 			} else {
 				entry_sum(e);
 			}
 		} else if (strcasecmp(command_type, "LEN") == 0){
-			entry* e = entry_get(args[1], &current_state);
+			entry* e = entry_get(args[1]);
 			if (e == NULL) {
 				MSG_NOKEY
 			} else {
 				entry_len(e);
 			}
 		} else if (strcasecmp(command_type, "SORT") == 0){
-			entry* e = entry_get(args[1], &current_state);
+			entry* e = entry_get(args[1]);
 			if (e->is_simple == false){
 				printf("simple entry only\n");
 			} else {
 				fwrapper_entry(e, &entry_sort);
 			} 
 		} else if (strcasecmp(command_type, "REV") == 0){
-			entry* e = entry_get(args[1], &current_state);
+			entry* e = entry_get(args[1]);
 			if (e->is_simple == false){
 				printf("simple entry only\n");
 			} else {
 				fwrapper_entry(e, &entry_reverse);
 			}
 		} else if (strcasecmp(command_type, "UNIQ") == 0){
-			entry* e = entry_get(args[1], &current_state); //TODO: add input verification and also checking that entry exists
+			entry* e = entry_get(args[1]); //TODO: add input verification and also checking that entry exists
 			if (e->is_simple == false){
 				printf("simple entry only\n");
 			} else {
 				fwrapper_entry(e, &entry_unique);
 			}
 		} else if (strcasecmp(command_type, "PLUCK") == 0){
-			entry* e = entry_get(args[1], &current_state);
+			entry* e = entry_get(args[1]);
 			if (e == NULL) {
 				MSG_NOKEY
 			} else {
@@ -1545,7 +1541,7 @@ int main(void) {
 				}	
 			}
 		} else if (strcasecmp(command_type, "PICK") == 0){
-			entry* e = entry_get(args[1], &current_state);
+			entry* e = entry_get(args[1]);
 			if (e == NULL) {
 				MSG_NOKEY
 			} else {
@@ -1557,21 +1553,21 @@ int main(void) {
 				}
 			}
 		} else if (strcasecmp(command_type, "POP") == 0){
-			entry* e = entry_get(args[1], &current_state);
+			entry* e = entry_get(args[1]);
 			if (e == NULL){
 				MSG_NOKEY
 			} else {
 				entry_pop(e);
 			}
 		} else if (strcasecmp(command_type, "FORWARD") == 0){
-			entry* e = entry_get(args[1], &current_state);
+			entry* e = entry_get(args[1]);
 			if (e == NULL){	
 				MSG_NOKEY  
 			} else {
 				entry_forward(e);
 			}
 		} else if (strcasecmp(command_type, "BACKWARD") == 0){
-			entry* e = entry_get(args[1], &current_state);
+			entry* e = entry_get(args[1]);
 			if (e == NULL){	
 				MSG_NOKEY  
 			} else {
@@ -1579,14 +1575,14 @@ int main(void) {
 			}
 		} else if (strcasecmp(command_type, "PURGE") == 0){
 			char* key = args[1];
-			if (!can_purge(key, &current_state, &latest_snapshot)){
+			if (!can_purge(key)){
 				MSG_NOPERM
 			} else {
-				purge(key, &current_state, &latest_snapshot);
+				purge(key);
 				MSG_OK
 			}
 		}  else if (strcasecmp(command_type, "TYPE") == 0){
-			entry* e = entry_get(args[1], &current_state);
+			entry* e = entry_get(args[1]);
 			fwrapper_entry(e, &entry_type);
 			if (e == NULL) {
 				printf("no such key\n"); //TODO: Use function pointers (create wrapper function) to call any functions that use the get entry method.
@@ -1596,38 +1592,39 @@ int main(void) {
 		} else if (strcasecmp(command_type, "LIST") == 0){
 			char* option = args[1];
 			if (strcasecmp(option, "KEYS") == 0){
-				list_keys(&current_state);
+				list_keys();
 			} else if (strcasecmp(option, "ENTRIES") == 0){
-				list_entries(&current_state);
+				list_entries();
 			} else if (strcasecmp(option, "SNAPSHOTS") == 0){
-				list_snapshots(&latest_snapshot);
+				list_snapshots();
 			} 
 		} else if (strcasecmp(command_type, "SNAPSHOT") == 0){
-		 	snapshot* snap = snapshot_save(next_snap_id++, &current_state, &latest_snapshot);
+		 	snapshot* snap = snapshot_save(next_snap_id++);
 			printf("saved as snapshot %d\n", snap->id);
 		} else if (strcasecmp(command_type, "DROP") == 0){ //! Segfaults
 			if (!string_isnumeric(args[1])){
 				printf("You must provide a valid ID for a snapshot!\n");
 			} else {
 				int id = atoi(args[1]);
-				snapshot* snap = snapshot_get(id, &latest_snapshot);
+				snapshot* snap = snapshot_get(id);
 				if (snap == NULL){
 					MSG_NOSNAP
 				} else {
-					snapshot_drop(snap, &latest_snapshot);
+					snapshot_drop(snap);
 					MSG_OK
 				}
+
 			}
 		} else if (strcasecmp(command_type, "ROLLBACK") == 0){ //! Segfaults
 			if (!string_isnumeric(args[1])){
 				printf("You must provide a valid ID for a snapshot!\n");
 			} else {
 				int id = atoi(args[1]);
-				snapshot* snap = snapshot_get(id, &latest_snapshot);
+				snapshot* snap = snapshot_get(id);
 				if (snap == NULL){
 					MSG_NOSNAP
 				} else {
-					snapshot_rollback(snap, &current_state, &latest_snapshot);
+					snapshot_rollback(snap);
 					MSG_OK
 				}
 			}
@@ -1636,11 +1633,11 @@ int main(void) {
 				printf("You must provide a valid ID for a snapshot!\n");
 			} else {
 				int id = atoi(args[1]);
-				snapshot* snap = snapshot_get(id, &latest_snapshot);
+				snapshot* snap = snapshot_get(id);
 				if (snap == NULL){
 					MSG_NOSNAP
 				} else {
-					snapshot_checkout(snap, &current_state);
+					snapshot_checkout(snap);
 					MSG_OK
 				}
 			}
@@ -1648,7 +1645,7 @@ int main(void) {
 		 	command_help();
 		} else if (strcasecmp(command_type, "BYE") == 0){
 			command_bye();
-			program_clear(&current_state, &latest_snapshot); 
+			program_clear(); 
 			free(args);
 			return -1;
 		}
