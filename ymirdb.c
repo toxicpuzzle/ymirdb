@@ -1650,6 +1650,8 @@ int main(void) {
 			command_bye();
 			program_clear(&current_state, &latest_snapshot); 
 			free(args);
+			free(current_state);
+			free(latest_snapshot);
 			return -1;
 		}
 
