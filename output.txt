@@ -517,6 +517,66 @@ a [100 99 88]
 
 > bye
  
+===== Executing test case: tests/set_forward_backward_changed =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> nil
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> b c d e 
+
+> f 
+
+> a f 
+
+> a b c d e 
+
+> f [a 10]
+e [1]
+d [e]
+c [100 9]
+b [c]
+a [100 99 b d]
+
+> [100 99 b d]
+
+> ok
+
+> nil
+
+> f 
+
+> nil
+
+> a 
+
+> f [a 10]
+e [1]
+d [e]
+c [100 9]
+b [c]
+a [0]
+
+> bye
+ 
 ===== Executing test case: tests/set_invalid_forward =====
  
 > no such key

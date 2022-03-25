@@ -814,7 +814,7 @@ void entry_backward(entry* e){
 	}
 
 	if (size == 0){
-		printf("nil\n\n");
+		printf("nil\n");
 	} else {
 		free(backward_entries);
 		printf("\n");
