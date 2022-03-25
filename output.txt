@@ -54,6 +54,70 @@ b [1]
 
 > bye
  
+===== Executing test case: tests/checkout_invalid_numeric =====
+ 
+> You must provide a valid ID for a snapshot!
+
+> You must provide a valid ID for a snapshot!
+
+> bye
+ 
+===== Executing test case: tests/checkout_no_snap =====
+ 
+> no such snapshot
+
+> no such snapshot
+
+> no such snapshot
+
+> no such snapshot
+
+> ok
+
+> saved as snapshot 1
+
+> 1
+
+> ok
+
+> no such snapshot
+
+> a [1]
+
+> bye
+ 
+===== Executing test case: tests/del_after_purge_fails =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> saved as snapshot 1
+
+> ok
+
+> saved as snapshot 2
+
+> ok
+
+> c [a b 1 2]
+b [a 1 2]
+a [1 2 3]
+
+> ok
+
+> ok
+
+> c [a b 1 2]
+b [a 1 2]
+a [1 2 3]
+
+> no such key
+
+> bye
+ 
 ===== Executing test case: tests/del_general =====
  
 > ok
@@ -428,6 +492,71 @@ a [1]
 
 > bye
  
+===== Executing test case: tests/set_case_sensitivity =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> Ab [12 23 aB]
+aB [100 9]
+A [100 9 9]
+a [100 99 88]
+
+> [100 99 88]
+
+> [100 9 9]
+
+> [100 9]
+
+> [12 23 aB]
+
+> bye
+ 
+===== Executing test case: tests/set_invalid_forward =====
+ 
+> no such key
+
+> no such key
+
+> no such key
+
+> no entries
+
+> bye
+ 
+===== Executing test case: tests/set_invalid_key =====
+ 
+> not permitted
+
+> not permitted
+
+> not permitted
+
+> not permitted
+
+> no entries
+
+> bye
+ 
+===== Executing test case: tests/set_negative_values =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> c3d [10 20 -100]
+b2c [100 1 -2000]
+a1b [-100 1 1]
+
+> bye
+ 
 ===== Executing test case: tests/snap_general_diamond =====
  
 > ok
@@ -534,28 +663,7 @@ c [e]
 
 > bye
  
-===== Executing test case: tests/snap_simple =====
- 
-> ok
-
-> saved as snapshot 1
-
-> ok
-
-> saved as snapshot 2
-
-> ok
-
-> a [1]
-
-> ok
-
-> b [2]
-a [1]
-
-> bye
- 
-===== Executing test case: tests/snap_success_id =====
+===== Executing test case: tests/snap_id_is_lifetime =====
  
 > ok
 
@@ -630,7 +738,7 @@ b [c -1 0 1]
 
 > bye
  
-===== Executing test case: tests/snap_success_memory =====
+===== Executing test case: tests/snap_mem_independent =====
  
 > ok
 
@@ -700,5 +808,66 @@ a [c 1 2 3]
 3
 2
 1
+
+> bye
+ 
+===== Executing test case: tests/snap_simple =====
+ 
+> ok
+
+> saved as snapshot 1
+
+> ok
+
+> saved as snapshot 2
+
+> ok
+
+> a [1]
+
+> ok
+
+> b [2]
+a [1]
+
+> bye
+ 
+===== Executing test case: tests/sort_long_after_pluck_pop =====
+ 
+> ok
+
+> ok
+
+> [0 1 2 2 4 10 28 39 69 88 99]
+
+> 2
+
+> 0
+
+> [1 2 4 10 28 39 69 88 99]
+
+> ok
+
+> [22 -21 -100 -3 -2 1 2 4 10 28 39 69 88 99]
+
+> ok
+
+> [-100 -21 -3 -2 1 2 4 10 22 28 39 69 88 99]
+
+> bye
+ 
+===== Executing test case: tests/sumlen_duplicate_forwards =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> 15
+
+> 8
 
 > bye
