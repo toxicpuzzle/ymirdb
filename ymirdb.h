@@ -43,6 +43,8 @@ struct entry {
   size_t length; //? Stores the number of values associated with the key
   entry* copy_reference;
   char has_visited;
+  int sum_forward; // Stores the sum of all forward entries 
+  int len_forward; // Stores the len of all forward entries (includes repeats)
   int sum;
   int max;
   int min; 

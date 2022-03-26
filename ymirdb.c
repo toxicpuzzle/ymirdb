@@ -109,8 +109,6 @@ entry* entry_get(char* key, entry** current_state_ptr){
 	return NULL;
 }
 
-// TODO: Test this
-//! getting backward references works properly, but forward references results in extra (null) printed
 // Connects e to forward by first resizing reference arrays and own size variables and then by adding references
 void entry_connect(entry* e, entry* forward){
 
@@ -126,7 +124,6 @@ void entry_connect(entry* e, entry* forward){
 
 }
 
-// TODO: Make this return information about how some of the elements that were created were not simple! pass is simple boolean by arg?
 // Creates values array for entry from cmdline args and the current state
 element* elements_create(char** args, size_t args_size, entry** current_state_ptr){
 	element* elements = calloc(args_size, sizeof(element)); 
@@ -140,9 +137,6 @@ element* elements_create(char** args, size_t args_size, entry** current_state_pt
 			current_elem->type = ENTRY;
 			entry* forward_link = entry_get(current_arg, current_state_ptr);
 			current_elem->entry = forward_link;
-			//! Think about how to added forward link to the back of the entry referenced.
-			// forward_link->backward
-			
 		}
 	}
 	return elements;
@@ -229,6 +223,7 @@ void state_push(entry* e, entry** current_state_ptr){
 	}
 }
 
+// O(n) returns true if appended/pushed are valid -> prints errors.
 bool _entry_values_change_is_valid(entry* e, size_t len, element* elements){
     // Check none of the elements pushed result in cycle or non-existant key
     for (int i = 0; i < len; i++){
@@ -236,10 +231,10 @@ bool _entry_values_change_is_valid(entry* e, size_t len, element* elements){
         if (current_element->type == ENTRY){
             entry* forward_link = current_element->entry;
             if (forward_link == NULL){
-                printf("no such key\n");
+                MSG_NOKEY
                 return false;
             } else if (strcmp(forward_link->key, e->key) == 0){
-                printf("not permitted\n");
+                MSG_NOPERM
                 return false;
             }
         }
@@ -355,22 +350,30 @@ void entry_max(entry* e){
 }
 
 // Helper function to calculate sum for entries
+// int _calculate_sum(entry* e){
+// 	int sum = e->sum;
+// 	for (int i = 0; i < e->forward_size; i++){
+// 		sum += _calculate_sum(e->forward[i]);
+// 	}
+// 	return sum;
+// }
+
 int _calculate_sum(entry* e){
+	if (e->has_visited){
+		return e->sum_forward;
+	}
+	
 	int sum = e->sum;
 	for (int i = 0; i < e->forward_size; i++){
 		sum += _calculate_sum(e->forward[i]);
 	}
+
+	e->sum_forward = sum;
+	e->has_visited = true;
 	return sum;
 }
 
-// Helper function to calculate length for entries
-int _calculate_len(entry* e){
-	int len = e->length - e->forward_size;
-	for (int i = 0; i < e->forward_size; i++){
-		len += _calculate_len(e->forward[i]);
-	}
-	return len;
-}
+
 
 void entry_sum(entry* e){
 	// _inspect_state();
@@ -386,10 +389,44 @@ void entry_sum(entry* e){
 	// if (forward_size > 0){
 	// 	free(forwards);
 	// }
+
+	// Clear sum
+	int forward_size = 0;
+	entry** forwards  = get_forward_links(e, &forward_size);
 	int sum = _calculate_sum(e);
+	
+	// Get all of e's unique forward links and clear 	
+	e->has_visited = false;
+	for (int i = 0; i < forward_size; i++){
+		forwards[i]->has_visited = false;
+		forwards[i]->sum_forward = 0;
+	}
+	
+	// Free memory for forwards array
+	if (forward_size > 0){
+		free(forwards);
+	}
+
+	
 	// printf("Sum of values is: %d\n", sum);
 	printf("%d\n", sum);
 
+}
+
+// Helper function to calculate length for entries
+int _calculate_len(entry* e){
+	if (e->has_visited){
+		return e->len_forward;
+	}
+	
+	int len = e->length - e->forward_size;
+	for (int i = 0; i < e->forward_size; i++){
+		len += _calculate_len(e->forward[i]);
+	}
+
+	e->len_forward = len;
+	e->has_visited = true;
+	return len;
 }
 
 // Private method used by entry_len to get the DFS counting length of a general entry
@@ -411,8 +448,24 @@ int entry_len(entry* e){
 	// }
 	
 	// return len;
-
+	// Get forward uniques first so we can clear has_visited later
+	int forward_size = 0;
+	entry** forwards  = get_forward_links(e, &forward_size);
 	int len = _calculate_len(e);
+	
+	// Get all of e's unique forward links and clear forward_visited
+	e->has_visited = false;
+	for (int i = 0; i < forward_size; i++){
+		forwards[i]->has_visited = false;
+		forwards[i]->len_forward = 0;
+	}
+	
+	
+	// Free memory for forwards array
+	if (forward_size > 0){
+		free(forwards);
+	}
+	
 	// printf("The number of values in the entry is: %d\n", len);
 	printf("%d\n", len);
 	
