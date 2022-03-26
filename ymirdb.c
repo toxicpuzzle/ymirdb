@@ -1509,6 +1509,7 @@ int main(void) {
 			    	printf("simple entry only\n");
 			    } else {
                     entry_sort(e);
+                    MSG_OK
                 }  
             }
 		} else if (strcasecmp(command_type, "REV") == 0){
@@ -1520,6 +1521,7 @@ int main(void) {
 			    	printf("simple entry only\n");
 			    } else {
                     entry_reverse(e);
+                    MSG_OK
                 }  
             }
 		} else if (strcasecmp(command_type, "UNIQ") == 0){
@@ -1531,6 +1533,7 @@ int main(void) {
 			    	printf("simple entry only\n");
 			    } else {
                     entry_unique(e);
+                    MSG_OK
                 }  
             }
 		} else if (strcasecmp(command_type, "PLUCK") == 0){
