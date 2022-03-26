@@ -448,7 +448,7 @@ bye
 
 > bye
  
-===== Executing test case: tests/large_database =====
+===== Executing test case: tests/large_database_1000_entries =====
  
 > ok
 
@@ -13881,6 +13881,31 @@ e [1 2 h f]
 
 > bye
  
+===== Executing test case: tests/rev_fail_general_entries =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> simple entry only
+
+> b [a 1 2 3]
+a [1 2 3 4 5]
+
+> bye
+ 
+===== Executing test case: tests/rev_simple =====
+ 
+> ok
+
+> ok
+
+> [5 4 3 2 1]
+
+> bye
+ 
 ===== Executing test case: tests/rollback_simple =====
  
 > ok
@@ -14409,5 +14434,42 @@ a [1]
 > 15
 
 > 8
+
+> bye
+ 
+===== Executing test case: tests/type_updates_after_append =====
+ 
+> ok
+
+> ok
+
+> simple
+
+> ok
+
+> general
+
+> bye
+ 
+===== Executing test case: tests/type_updates_after_push =====
+ 
+> ok
+
+> ok
+
+> simple
+
+> ok
+
+> general
+
+> b
+
+> simple
+
+> nil
+
+> b [1 2]
+a [1 2 3]
 
 > bye

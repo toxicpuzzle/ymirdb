@@ -1,0 +1,1752 @@
+        -:    0:Source:ymirdb.c
+        -:    0:Graph:ymirdb.gcno
+        -:    0:Data:ymirdb.gcda
+        -:    0:Runs:43
+        -:    1:/**
+        -:    2: * comp2017 - assignment 2
+        -:    3: * Tim Yang
+        -:    4: * yyan0195
+        -:    5: */
+        -:    6:
+        -:    7:#include <stdio.h>
+        -:    8:#include <stdlib.h>
+        -:    9:#include <string.h>
+        -:   10:#include <strings.h>
+        -:   11:#include <stdbool.h>
+        -:   12:#include <ctype.h>
+        -:   13:#include <limits.h>
+        -:   14:#include "ymirdb.h"
+        -:   15:#define TEST 0
+        -:   16:#define PRINT_COMMAND 0
+        -:   17:#define MSG_NOKEY printf("no such key\n");
+        -:   18:#define MSG_NOSNAP printf("no such snapshot\n");
+        -:   19:#define MSG_NOPERM printf("not permitted\n");
+        -:   20:#define MSG_OK printf("ok\n");
+        -:   21:
+        -:   22:entry** get_forward_links(entry* e, int* size);
+        -:   23:void entry_recalcsmm(entry* e);
+        -:   24:void entry_free(entry* e);
+        -:   25:// void entry_remove_from_forward(entry* e, entry* target);
+        -:   26:// void entry_remove_from_backward(entry* e, entry* target);
+        -:   27:// void entry_remove_entry_from_values(entry* e, entry* target);
+        -:   28:// void entry_replace_entry_from_values(entry* e, entry* target, entry* replacement);
+        -:   29:// void entry_replace_entry_from_backward(entry* e, int target);
+        -:   30:// void entry_replace_entry_from_forward(entry* e, int target);
+        -:   31:
+        -:   32:void _inspect_state();
+        -:   33:
+    #####:   34:void fwrapper_entry(entry* e, void f(entry*)){
+    #####:   35:	if (e == NULL) {
+    #####:   36:		MSG_NOKEY
+        -:   37:	} else {
+    #####:   38:		f(e); //TODO: make it so teh push is not atoi
+    #####:   39:		MSG_OK
+        -:   40:	}
+    #####:   41:}
+        -:   42:
+       11:   43:void swap(void* a1, int idx1, int idx2, size_t size_each_elem){
+       11:   44:	void* temp = calloc(1, size_each_elem);
+       11:   45:	memcpy(temp, a1+idx1*size_each_elem, size_each_elem); 
+       11:   46:	memcpy(a1+idx1*size_each_elem, a1+idx2*size_each_elem, size_each_elem);
+       11:   47:	memcpy(a1+idx2*size_each_elem, temp, size_each_elem);
+       11:   48:	free(temp);
+       11:   49:}
+        -:   50:
+       43:   51:void command_bye() {
+       43:   52:	printf("bye\n");
+       43:   53:}
+        -:   54:
+    #####:   55:void command_help() {
+    #####:   56:	printf("%s", HELP);
+    #####:   57:}
+        -:   58:
+        -:   59:// Returns if a string follows a numeric format (positive/negative int)
+   504341:   60:bool string_isnumeric(char* string){
+   504341:   61:	char* cursor = string;
+   504341:   62:	if (*cursor == '-'){
+       15:   63:		cursor++;
+        -:   64:	}
+        -:   65:
+   512915:   66:	while (*cursor != '\0'){
+   508283:   67:		if (!isdigit(*cursor)){
+   499709:   68:			return false;
+        -:   69:		}
+     8574:   70:		cursor++;
+        -:   71:	}
+     4632:   72:	return true;
+        -:   73:}
+        -:   74:
+        -:   75:// TEMP: Just making the function print out the entry for now, will make it return a string instead later
+      225:   76:void entry_tostring(entry* e){
+      225:   77:	char* string = calloc(e->length*2, sizeof(char));
+      225:   78:	printf("[");
+     2311:   79:	for (int i = 0; i < e->length; i++){
+     2086:   80:		element* current_element = (e->values+i);
+     2086:   81:		if (current_element->type == ENTRY){
+      157:   82:			printf("%s", current_element->entry->key);
+        -:   83:		} else {
+     1929:   84:			printf("%d", current_element->value);
+        -:   85:		}
+        -:   86:		
+     2086:   87:		if (i != e->length-1){
+     1861:   88:			printf(" ");
+        -:   89:		}
+        -:   90:		
+        -:   91:		//TODO: Write recursive function that converts links to other keys to strings within current string.
+        -:   92:	}
+      225:   93:	printf("]\n");
+      225:   94:	free(string);
+        -:   95:	// return string;
+      225:   96:}	
+        -:   97:
+        -:   98:
+        -:   99:// Returns an entry given the key and the current state's last entry
+   506641:  100:entry* entry_get(char* key, entry** current_state_ptr){
+        -:  101:	// Perform linear search over current database
+   506641:  102:	entry* cursor = *current_state_ptr;
+170755375:  103:	while (cursor != NULL){
+170754211:  104:		if (strcmp(key, cursor->key) == 0){
+   505477:  105:			return cursor;
+        -:  106:		}
+170248734:  107:		cursor = cursor->next;
+        -:  108:	}
+     1164:  109:	return NULL;
+        -:  110:}
+        -:  111:
+        -:  112:// Connects e to forward by first resizing reference arrays and own size variables and then by adding references
+   499616:  113:void entry_connect(entry* e, entry* forward){
+        -:  114:
+        -:  115:	// Resize the memory 
+   499616:  116:	e->forward_size++;
+   499616:  117:	e->forward = realloc(e->forward, (e->forward_size)*sizeof(entry*));
+   499616:  118:	forward->backward_size++;
+   499616:  119:	forward->backward = realloc(forward->backward, (forward->backward_size)*sizeof(entry*));
+        -:  120:
+        -:  121:	// Add forward reference and backward references to the end of the list
+   499616:  122:	e->forward[e->forward_size-1] = forward;
+   499616:  123:	forward->backward[forward->backward_size-1] = e;
+        -:  124:
+   499616:  125:}
+        -:  126:
+        -:  127:// Creates values array for entry from cmdline args and the current state
+     6690:  128:element* elements_create(char** args, size_t args_size, entry** current_state_ptr){
+     6690:  129:	element* elements = calloc(args_size, sizeof(element)); 
+   508620:  130:	for (int i = 0; i < args_size; i++){
+   501930:  131:		element* current_elem = elements + i;
+   501930:  132:		char* current_arg = args[i];
+   501930:  133:		if (string_isnumeric(current_arg)){
+     2292:  134:			current_elem->type = INTEGER;		
+     2292:  135:			current_elem->value = atoi(current_arg);
+        -:  136:		} else {
+   499638:  137:			current_elem->type = ENTRY;
+   499638:  138:			entry* forward_link = entry_get(current_arg, current_state_ptr);
+   499638:  139:			current_elem->entry = forward_link;
+        -:  140:		}
+        -:  141:	}
+     6690:  142:	return elements;
+        -:  143:}
+        -:  144:
+        -:  145:// TODO: Deal with potential undefined behaviour from strings e.g. strlen not copying the null byte
+        -:  146:// TODO: Include creation of complex entries i.e. ones with links to other keys (should include char* values) instead of int* values?;
+        -:  147:// ? Note that the keys and values must also be inputted in the order that they are stored in so we probably cannot just have int array.
+        -:  148:// Used to create simple entries (We create this in the main function then pass the entry around to other functions)
+        -:  149:
+        -:  150:// Returns if a key is a valid key that is alphabetical and of valid length
+     1146:  151:bool key_isvalid(char* key){
+     1146:  152:	if (!isalpha(*key) || strlen(key) > 15) return false;
+     1142:  153:	return true;
+        -:  154:}
+        -:  155:
+        -:  156:
+        -:  157:// Creates an entry based on args given, connects entry to all relevant forward links (both sides)
+     1146:  158:entry* entry_create(char** args, size_t args_size, entry** current_state_ptr){
+        -:  159:
+     1146:  160:	if (args_size <= 1){
+    #####:  161:		printf("Cannot create an an entry with no key or with a key but has no values\n");
+    #####:  162:		return NULL;
+        -:  163:	}
+        -:  164:
+     1146:  165:	if (!key_isvalid(args[0])){
+        4:  166:		MSG_NOPERM
+        4:  167:		return NULL;
+        -:  168:	}
+        -:  169:
+     1142:  170:	char* key = args[0];
+     1142:  171:	entry* e = (entry *)calloc(1, sizeof(entry)); 
+     1142:  172:	e->is_simple = true;
+     1142:  173:	e->has_visited = false;
+     1142:  174:	e->copy_reference = NULL;
+        -:  175:
+        -:  176:	// Check if entry contains links to other keys & keys exist & no loop to self
+     3483:  177:	for (int i = 1; i < args_size; i++){
+     2348:  178:		char* arg = args[i];
+     2348:  179:		if (string_isnumeric(arg) == false){
+       69:  180:			e->is_simple = false;
+       69:  181:			entry* forward_link = entry_get(arg, current_state_ptr);
+        -:  182:			
+       69:  183:			if (strcmp(key, arg) == 0){
+        3:  184:				MSG_NOPERM;
+        3:  185:				entry_free(e);
+        3:  186:				return NULL;
+       66:  187:			} else if (forward_link == NULL){
+        4:  188:				MSG_NOKEY
+        4:  189:				entry_free(e);
+        4:  190:				return NULL;
+        -:  191:			}  
+        -:  192:
+        -:  193:
+        -:  194:			// Connect elements if forward link is valid (handles adding to )
+       62:  195:			entry_connect(e, forward_link);
+        -:  196:		}
+        -:  197:	}
+        -:  198:
+        -:  199:	// Set key for entry
+        -:  200:	// e->values = calloc(args_size-1, sizeof(element));
+     1135:  201:	memcpy(e->key, key, strlen(key)+1);
+        -:  202:
+        -:  203:	// Set elements for entry
+     1135:  204:	e->values = elements_create(args+1, args_size-1, current_state_ptr);
+     1135:  205:	e->length = args_size-1;
+        -:  206:
+        -:  207:	// Set max, min, sum
+     1135:  208:	entry_recalcsmm(e);
+        -:  209:
+     1135:  210:	return e;
+        -:  211:}
+        -:  212:
+        -:  213:// Adds the entry to the database state (current_state)
+     1116:  214:void state_push(entry* e, entry** current_state_ptr){
+     1116:  215:	if (*current_state_ptr == NULL){
+       39:  216:		*current_state_ptr = e;
+        -:  217:	} else {
+        -:  218:		// Add the entry to stack (current_state)
+     1077:  219:		entry* old_state = *current_state_ptr;
+     1077:  220:		*current_state_ptr = e;
+     1077:  221:		(*current_state_ptr)->next = old_state;
+     1077:  222:		old_state->prev = *current_state_ptr;
+        -:  223:	}
+     1116:  224:}
+        -:  225:
+        -:  226:// O(n) returns true if appended/pushed are valid -> prints errors.
+     5555:  227:bool _entry_values_change_is_valid(entry* e, size_t len, element* elements){
+        -:  228:    // Check none of the elements pushed result in cycle or non-existant key
+   505129:  229:    for (int i = 0; i < len; i++){
+   499587:  230:        element* current_element = elements+i;
+   499587:  231:        if (current_element->type == ENTRY){
+   499570:  232:            entry* forward_link = current_element->entry;
+   499570:  233:            if (forward_link == NULL){
+        8:  234:                MSG_NOKEY
+        8:  235:                return false;
+   499562:  236:            } else if (strcmp(forward_link->key, e->key) == 0){
+        5:  237:                MSG_NOPERM
+        5:  238:                return false;
+        -:  239:            }
+        -:  240:        }
+        -:  241:    }
+     5542:  242:    return true;
+        -:  243:}
+        -:  244:
+        -:  245:// Appends values to an entry's values array, returns false if failed
+     5520:  246:bool entry_append(entry* e, char** args, size_t args_size, entry** current_state_ptr){
+        -:  247:	// Create array of elements to attach to the entry
+     5520:  248:	element* elements = elements_create(args, args_size, current_state_ptr);
+        -:  249:    
+     5520:  250:    if (!_entry_values_change_is_valid(e, args_size, elements)){
+        5:  251:        free(elements);
+        5:  252:        return false;
+        -:  253:    }
+        -:  254:    
+     5515:  255:	int old_length = e->length;
+     5515:  256:	e->length = e->length + args_size;
+     5515:  257:	e->values = realloc(e->values,	(e->length)*sizeof(element)); 
+     5515:  258:	memcpy(e->values+old_length, elements, sizeof(element)*args_size);
+        -:  259:
+        -:  260:	// TODO: Go to each new element that is a char and attach back links to current element
+   505042:  261:	for (int i = 0; i < args_size; i++){
+   499527:  262:		element* current_element = elements+i;
+   499527:  263:		if (current_element->type == ENTRY){
+   499521:  264:			entry* forward_link = current_element->entry;
+   499521:  265:			entry_connect(e, forward_link);
+        -:  266:		} 
+        -:  267:	}	
+        -:  268:
+     5515:  269:	free(elements);
+     5515:  270:	entry_recalcsmm(e);
+     5515:  271:    return true;
+        -:  272:}
+        -:  273:
+        -:  274:// Reverses an array in O(n) time
+       27:  275:void _reverse_array(void* array, int length, size_t size){
+       38:  276:	for (int i = 0; i < length/2; i++){
+       11:  277:		swap(array, i, length-i-1, size);
+        -:  278:	}
+       27:  279:}
+        -:  280:
+        -:  281:// Pushes values to an entry's values array, returns false if failed
+       35:  282:bool entry_push(entry* e, char** args, size_t args_size, entry** current_state_ptr){
+        -:  283:	// Create array of elements to attach to the entry
+       35:  284:	element* elements = elements_create(args, args_size, current_state_ptr);
+        -:  285:
+       35:  286:    if (!_entry_values_change_is_valid(e, args_size, elements)){
+        8:  287:        free(elements);
+        8:  288:        return false;
+        -:  289:    }
+        -:  290:
+        -:  291:
+       27:  292:    _reverse_array((void*)elements, (int)args_size, sizeof(element));
+       27:  293:	e->length = e->length + args_size;
+       27:  294:	e->values = realloc(e->values,	(e->length)*sizeof(element)); 
+       27:  295:	memmove(e->values+args_size, e->values, sizeof(element)*(e->length-args_size));
+       27:  296:	memcpy(e->values, elements, sizeof(element)*args_size);
+        -:  297:
+       71:  298:	for (int i = 0; i < args_size; i++){
+       44:  299:		element* current_element = elements+i;
+       44:  300:		if (current_element->type == ENTRY){
+       33:  301:			entry* forward_link = current_element->entry;
+       33:  302:			entry_connect(e, forward_link);
+        -:  303:		} 
+        -:  304:	}	
+        -:  305:
+       27:  306:	free(elements); // Remove the elements array (copy is in entry)
+       27:  307:	entry_recalcsmm(e);
+       27:  308:    return true;
+        -:  309:}
+        -:  310:
+        -:  311:// Prints out the minimum value for an entry
+        2:  312:void entry_min(entry* e){
+        2:  313:	int min = e->min;
+        2:  314:	int forward_size = 0;
+        2:  315:	entry** forwards  = get_forward_links(e, &forward_size);
+        -:  316:
+     1008:  317:	for (int i = 0; i < forward_size; i++){
+     1006:  318:		if (forwards[i]->min < min){
+        2:  319:			min = forwards[i]->min;
+        -:  320:		}
+        -:  321:	}
+        -:  322:
+        -:  323:	// printf("Minimum value is: %d\n", min);
+        2:  324:	printf("%d\n", min);
+        -:  325:
+        2:  326:	if (forward_size > 0){
+        2:  327:		free(forwards);
+        -:  328:	}
+        -:  329:
+        2:  330:}
+        -:  331:
+        -:  332:// Prints out the maximum value for an entry
+        3:  333:void entry_max(entry* e){
+        3:  334:	int max = e->max;
+        3:  335:	int forward_size = 0;
+        3:  336:	entry** forwards  = get_forward_links(e, &forward_size);
+        -:  337:	
+     1016:  338:	for (int i = 0; i < forward_size; i++){
+     1013:  339:		if (forwards[i]->max > max){
+     1000:  340:			max = forwards[i]->max;
+        -:  341:		}
+        -:  342:	}
+        -:  343:	
+        -:  344:	// printf("Maximum value is: %d\n", max);
+        3:  345:	printf("%d\n", max);
+        -:  346:
+        3:  347:	if (forward_size > 0){
+        3:  348:		free(forwards);
+        -:  349:	}
+        3:  350:}
+        -:  351:
+        -:  352:// Helper function to calculate sum for entries
+        -:  353:// int _calculate_sum(entry* e){
+        -:  354:// 	int sum = e->sum;
+        -:  355:// 	for (int i = 0; i < e->forward_size; i++){
+        -:  356:// 		sum += _calculate_sum(e->forward[i]);
+        -:  357:// 	}
+        -:  358:// 	return sum;
+        -:  359:// }
+        -:  360:
+       51:  361:int _calculate_sum(entry* e){
+       51:  362:	if (e->has_visited){
+       20:  363:		return e->sum_forward;
+        -:  364:	}
+        -:  365:	
+       31:  366:	int sum = e->sum;
+       73:  367:	for (int i = 0; i < e->forward_size; i++){
+       42:  368:		sum += _calculate_sum(e->forward[i]);
+        -:  369:	}
+        -:  370:
+       31:  371:	e->sum_forward = sum;
+       31:  372:	e->has_visited = true;
+       31:  373:	return sum;
+        -:  374:}
+        -:  375:
+        -:  376:
+        -:  377:
+        9:  378:void entry_sum(entry* e){
+        -:  379:	// _inspect_state();
+        -:  380:	// int sum = e->sum;
+        -:  381:	// int forward_size = 0;
+        -:  382:	// entry** forwards  = get_forward_links(e, &forward_size);
+        -:  383:
+        -:  384:	// for (int i = 0; i < forward_size; i++){
+        -:  385:	// 	sum += forwards[i]->sum;
+        -:  386:	// }
+        -:  387:
+        -:  388:	// printf("Sum of values is: %d\n", sum);
+        -:  389:	// if (forward_size > 0){
+        -:  390:	// 	free(forwards);
+        -:  391:	// }
+        -:  392:
+        -:  393:	// Clear sum
+        9:  394:	int forward_size = 0;
+        9:  395:	entry** forwards  = get_forward_links(e, &forward_size);
+        9:  396:	int sum = _calculate_sum(e);
+        -:  397:	
+        -:  398:	// Get all of e's unique forward links and clear 	
+        9:  399:	e->has_visited = false;
+       31:  400:	for (int i = 0; i < forward_size; i++){
+       22:  401:		forwards[i]->has_visited = false;
+       22:  402:		forwards[i]->sum_forward = 0;
+        -:  403:	}
+        -:  404:	
+        -:  405:	// Free memory for forwards array
+        9:  406:	if (forward_size > 0){
+        7:  407:		free(forwards);
+        -:  408:	}
+        -:  409:
+        -:  410:	
+        -:  411:	// printf("Sum of values is: %d\n", sum);
+        9:  412:	printf("%d\n", sum);
+        -:  413:
+        9:  414:}
+        -:  415:
+        -:  416:// Helper function to calculate length for entries
+       45:  417:int _calculate_len(entry* e){
+       45:  418:	if (e->has_visited){
+       20:  419:		return e->len_forward;
+        -:  420:	}
+        -:  421:	
+       25:  422:	int len = e->length - e->forward_size;
+       63:  423:	for (int i = 0; i < e->forward_size; i++){
+       38:  424:		len += _calculate_len(e->forward[i]);
+        -:  425:	}
+        -:  426:
+       25:  427:	e->len_forward = len;
+       25:  428:	e->has_visited = true;
+       25:  429:	return len;
+        -:  430:}
+        -:  431:
+        -:  432:// Private method used by entry_len to get the DFS counting length of a general entry
+        7:  433:int entry_len(entry* e){
+        -:  434:	
+        -:  435:	// int len = e->length-e->forward_size;
+        -:  436:	// int forward_size = 0;
+        -:  437:	// entry** forwards  = get_forward_links(e, &forward_size);
+        -:  438:
+        -:  439:	// for (int i = 0; i < forward_size; i++){
+        -:  440:	// 	entry* forward = forwards[i];
+        -:  441:	// 	len += forward->length-forward->forward_size;
+        -:  442:	// }
+        -:  443:
+        -:  444:	// printf("The number of values in the entry is: %d\n", len);
+        -:  445:
+        -:  446:	// if (forward_size > 0){
+        -:  447:	// 	free(forwards);
+        -:  448:	// }
+        -:  449:	
+        -:  450:	// return len;
+        -:  451:	// Get forward uniques first so we can clear has_visited later
+        7:  452:	int forward_size = 0;
+        7:  453:	entry** forwards  = get_forward_links(e, &forward_size);
+        7:  454:	int len = _calculate_len(e);
+        -:  455:	
+        -:  456:	// Get all of e's unique forward links and clear forward_visited
+        7:  457:	e->has_visited = false;
+       25:  458:	for (int i = 0; i < forward_size; i++){
+       18:  459:		forwards[i]->has_visited = false;
+       18:  460:		forwards[i]->len_forward = 0;
+        -:  461:	}
+        -:  462:	
+        -:  463:	
+        -:  464:	// Free memory for forwards array
+        7:  465:	if (forward_size > 0){
+        4:  466:		free(forwards);
+        -:  467:	}
+        -:  468:	
+        -:  469:	// printf("The number of values in the entry is: %d\n", len);
+        7:  470:	printf("%d\n", len);
+        -:  471:	
+        7:  472:	return len;
+        -:  473:}
+        -:  474:
+        -:  475:// Frees an entry and all its associated arrays
+     2323:  476:void entry_free(entry* e){	//! Changed so entry free frees the entry and its forward references -> causes memory issues elsewhere.
+        -:  477:	// Free all values pointed to by e
+     2323:  478:	if (e->values != NULL) free(e->values);
+     2323:  479:	if (e->forward != NULL) free(e->forward);
+     2323:  480:	if (e->backward != NULL) free(e->backward);
+    2323*:  481:	if (e->copy_reference != NULL) free(e->copy_reference);
+     2323:  482:	free(e);
+     2323:  483:}
+        -:  484:
+        -:  485:// TODO: You must use the entry e as the new entry as the other entries are backward linked to it
+        -:  486:
+        -:  487:// TODO: Change entry_set to have own independent function that does not rely on creating a new entry? and using entry_connect?
+        -:  488:// TODO: Create entry_modify() function i.e. starts with args and just changes values, and adds forward references to existing entry. (does not create a new entry)
+        -:  489:
+        -:  490:// Testing function to look at everything in memory
+        -:  491:#if TEST == 1
+        -:  492:	void _inspect_state(){
+        -:  493:		entry* cursor = current_state;
+        -:  494:		while (cursor != NULL){
+        -:  495:			printf(">>> %s (Is simple: %d) %p\n", cursor->key, cursor->is_simple, cursor);
+        -:  496:			printf("Values: ");
+        -:  497:			for (int i = 0; i < cursor->length; i++){
+        -:  498:				element elem = cursor->values[i];
+        -:  499:				if (elem.type == ENTRY){
+        -:  500:					printf("%s", elem.entry->key);
+        -:  501:				} else {
+        -:  502:					printf("%d", elem.value);
+        -:  503:				}
+        -:  504:				printf(" ");
+        -:  505:			}
+        -:  506:			printf("\n");
+        -:  507:
+        -:  508:			printf("Backward links (%ld): ", cursor->backward_size);
+        -:  509:
+        -:  510:			for (int i = 0; i < cursor->backward_size; i++){
+        -:  511:				entry* backward = cursor->backward[i];
+        -:  512:				printf("%s %p", backward->key, backward);
+        -:  513:				printf(" ");
+        -:  514:			}
+        -:  515:			printf("\n");
+        -:  516:
+        -:  517:			printf("Forward links (%ld): ", cursor->forward_size);
+        -:  518:			
+        -:  519:			for (int i = 0; i < cursor->forward_size; i++){
+        -:  520:				entry* forward= cursor->forward[i];
+        -:  521:				printf("%s %p", forward->key, forward);
+        -:  522:				printf(" ");
+        -:  523:			}
+        -:  524:			printf("\n");
+        -:  525:
+        -:  526:			cursor = cursor->next;
+        -:  527:		}
+        -:  528:	}
+        -:  529:#else
+      176:  530:	void _inspect_state(){
+      176:  531:		return;
+        -:  532:	}
+        -:  533:#endif
+        -:  534:
+        -:  535:// TODO: Change the need to handle array's forward and backward max -> refactor so functions with entry_ start only have to do with entry.
+        -:  536:// void entry_remove_from_forward(entry* e, entry* target);
+        -:  537:// void entry_remove_from_backward(entry* e, entry* target);
+        -:  538:// void entry_remove_entry_from_values(entry* e, entry* target);
+        -:  539:// void entry_replace_entry_from_values(entry* e, int target);
+        -:  540:// void entry_replace_entry_from_backward(entry* e, int target);
+        -:  541:// void entry_replace_entry_from_forward(entry* e, int target);
+        -:  542:// Lots of functions but you can still keep the entries remove functions -> just use them in recursive functions for naked entry arrays.
+        -:  543://! If methods were related to method you would need to write 6 functions -> inefficient, lots of repetitive code
+        -:  544:// void entry_remove_from_forward(entry* e, entry* target){
+        -:  545:// 	e->forward = _entries_remove(e->forward, &e->forward_size, target);
+        -:  546:// }
+        -:  547:// void entry_remove_from_backward(entry* e, entry* target){
+        -:  548:// 	e->backward = _entries_remove(e->backward, &e->backward_size, target);
+        -:  549:// }
+        -:  550:// void entry_replace_entry_from_values(entry* e, entry* target, entry* replacement){
+        -:  551:// 	e->values = _elements_replace(e->values, &e->length, target, replacement);
+        -:  552:// }
+        -:  553:// void entry_add_to_forward(entry* e, entry* target){
+        -:  554:// 	 if (e->forward_size == e->forward_max){
+        -:  555://         e->forward_max *= 2;
+        -:  556://         e->forward = realloc(e->forward, e->forward_max);
+        -:  557://     }
+        -:  558:// 	e->forward[e->forward_size++] = target;
+        -:  559:// }
+        -:  560:
+        -:  561:// void entry_replace_entry_from_backward(entry* e, int target);
+        -:  562:// void entry_replace_entry_from_forward(entry* e, int target);
+        -:  563:
+        -:  564:
+        -:  565:// Removes entry with address rm from an array
+     2101:  566:entry** _entries_remove(entry** entries, size_t* entries_len, entry* rm){
+        -:  567:	
+        -:  568:	// printf("entry to remove is %s\n", rm->key);
+        -:  569:
+     2101:  570:	int idx = 0;
+        -:  571:	// Grab index to remove
+   500645:  572:	for (; idx < *entries_len; idx++){
+        -:  573:		// printf("%s ", entries[idx]->key);
+   500645:  574:		if (strcmp(entries[idx]->key, rm->key) == 0){
+     2101:  575:			break;
+        -:  576:		}
+        -:  577:	}
+        -:  578:
+        -:  579:	// TESTING:
+        -:  580:	// printf("***Viewing entries BEFORE removing***\n");
+        -:  581:	// for (int i = 0; i < *entries_len; i++){
+        -:  582:	// 	printf("%s, ", entries[i]->key);
+        -:  583:	// }
+        -:  584:	// printf("\n");
+        -:  585:	// printf("entries length is: %ld\n", *entries_len);
+        -:  586:
+        -:  587:	// Copy everything beyond index to index position
+     2101:  588:	if (*entries_len == 1){ //! Edge case causing segfault because we cannot realloc?
+       51:  589:		*entries_len = *entries_len - 1;
+        -:  590:		// printf("%p\n", entries);
+       51:  591:		free(entries); 
+       51:  592:		entries = NULL; //! Need to return null or you'll return pointer to garbage;
+        -:  593:	} else {
+        -:  594:		// printf("%ld %d\n", *entries_len, idx); //! Mixed test case -> why is b's backward entry size of 2? Shouldn't be any forward links to a though in mixed test case
+     2050:  595:		memmove(entries+idx, entries+idx+1, (*entries_len-(idx+1))*sizeof(entry*));
+     2050:  596:		*entries_len = *entries_len - 1;
+     2050:  597:		entries = realloc(entries, (*entries_len)*sizeof(entry*));
+        -:  598:	}
+        -:  599:
+        -:  600:
+        -:  601:	
+        -:  602:	// // // TESTING;
+        -:  603:	// printf("***Viewing entries AFTER removing***\n");
+        -:  604:	// for (int i = 0; i < *entries_len; i++){
+        -:  605:	// 	printf("%s, ", entries[i]->key);
+        -:  606:	// }
+        -:  607:	// printf("\n");
+        -:  608:
+     2101:  609:	return entries;
+        -:  610:}
+        -:  611:
+       12:  612:entry** _entries_replace(entry** entries, size_t* entries_len, entry* target, entry* replacement){
+        -:  613:	
+        -:  614:
+        -:  615:	// Grab index to remove
+       12:  616:	int idx = 0;
+       16:  617:	for (; idx < *entries_len; idx++){
+       16:  618:		if (strcmp(entries[idx]->key, target->key) == 0){
+       12:  619:			break;
+        -:  620:		}
+        -:  621:	}
+        -:  622:
+        -:  623:	// memcpy(entries+idx, replacement, sizeof(entry*));
+       12:  624:	entries[idx] = replacement;
+       12:  625:	return entries;
+        -:  626:}
+        -:  627:
+       12:  628:element* _elements_replace(element* elements, size_t* elements_len, entry* target, entry* replacement){
+        -:  629:	// Grab index to remove
+       12:  630:	int idx = 0;
+       24:  631:	for (; idx < *elements_len; idx++){
+        -:  632:		// if (elements[idx].type == ENTRY && elements[idx].entry == target){
+       24:  633:		if (elements[idx].type == ENTRY && strcmp(elements[idx].entry->key, target->key) == 0){
+       12:  634:			break;
+        -:  635:		}
+        -:  636:	}
+        -:  637:	// printf("Target: %p, Replacement: %p\n", elements[idx].entry, replacement);
+       12:  638:	elements[idx].entry = replacement;
+        -:  639:	// printf("Target: %p, Replacement: %p\n", elements[idx].entry, replacement);
+       12:  640:	return elements;
+        -:  641:}
+        -:  642:
+        -:  643:
+        -:  644:// makes a new entry take the place of an existing entry
+        -:  645://! entry_set does not set entries back links to the right address -> may be to do with copying mechanism?
+     1135:  646:void entry_set(entry* e, entry** current_state_ptr){
+        -:  647:	// Search through current state and see if the entry with key is tehre
+     1135:  648:	entry* existing = entry_get(e->key, current_state_ptr);
+     1135:  649:	if (existing == NULL){
+     1116:  650:		state_push(e, current_state_ptr); // TODO: Consider whether you should by default push or append?
+        -:  651:	} else {
+        -:  652:
+        -:  653:		//! Fix the segfault error when you do b 2 d
+        -:  654:		// printf("Setting general entry with key: %s\n", existing->key);
+        -:  655:		// printf("Backward links (%ld): ", existing->backward_size);
+        -:  656:
+        -:  657:		// for (int i = 0; i < existing->backward_size; i++){
+        -:  658:		// 	entry* backward = existing->backward[i];
+        -:  659:		// 	printf("%s", backward->key);
+        -:  660:		// 	printf(" ");
+        -:  661:		// }
+        -:  662:		// printf("\n");
+        -:  663:
+        -:  664:		// printf("Forward links (%ld): ", existing->forward_size);
+        -:  665:		
+        -:  666:		// for (int i = 0; i < existing->forward_size; i++){
+        -:  667:		// 	entry* forward= existing->forward[i];
+        -:  668:		// 	printf("%s", forward->key);
+        -:  669:		// 	printf(" ");
+        -:  670:		// }
+        -:  671:		// printf("\n");
+        -:  672:		// END test section
+        -:  673:		
+       19:  674:		_inspect_state();
+        -:  675:
+        -:  676:		// Remove all backward links to current entry
+       27:  677:		for (int i = 0; i < existing->forward_size; i++){// TODO: Replace this with _rm_forward_link_to
+        8:  678:			entry* forward = existing->forward[i];
+        8:  679:			forward->backward = _entries_remove(forward->backward, &forward->backward_size, existing); 
+        -:  680:		}
+        -:  681:
+        -:  682:		
+        -:  683:
+        -:  684:		// printf("Successfully removed exsiting forwad entries that point to new entry\n");
+        -:  685:
+        -:  686:		
+        -:  687:		//! a->new b - Troublesome section here
+        -:  688:		//! O(n^2) if you set the entries.
+        -:  689:		// Make all existing back entries point forward to new replacement entry
+        -:  690:		// printf("Existing: %p, Replacement: %p\n", existing, e);
+       31:  691:		for (int i = 0; i < existing->backward_size; i++){
+       12:  692:			entry* backward = existing->backward[i];
+       12:  693:			backward->forward = _entries_replace(backward->forward, &backward->forward_size, existing, e);
+       12:  694:			backward->values = _elements_replace(backward->values, &backward->length, existing, e);
+        -:  695:		}
+        -:  696:
+       19:  697:		_inspect_state();
+        -:  698:
+        -:  699:		// printf("--------------\n");
+        -:  700:
+        -:  701:		// Make e take position of existing state
+       19:  702:		entry* before = existing->prev;
+       19:  703:		entry* after = existing->next;
+        -:  704:
+       19:  705:		e->next = after;
+       19:  706:		e->prev = before;
+        -:  707:
+       19:  708:		if (before != NULL){
+       16:  709:			before->next = e;
+        -:  710:		} else {
+        -:  711:			// current_state = e;
+        3:  712:			*current_state_ptr = e;
+        -:  713:		}
+        -:  714:
+       19:  715:		if (after != NULL){
+       12:  716:			after->prev = e;
+        -:  717:		}
+        -:  718:		
+        -:  719:		// Make new state have back references of previous state
+       19:  720:		entry** backward_copy = calloc(existing->backward_size, sizeof(entry*));
+       19:  721:		memcpy(backward_copy, existing->backward, existing->backward_size*(sizeof(entry*)));
+       19:  722:		e->backward = backward_copy;
+        -:  723:		// e->backward_max = existing->backward_max;
+       19:  724:		e->backward_size = existing->backward_size;
+       19:  725:		_inspect_state();
+        -:  726:		
+       19:  727:		entry_free(existing);
+       19:  728:		_inspect_state();
+        -:  729:	}
+     1135:  730:}
+        -:  731:
+        -:  732:
+        -:  733:
+        -:  734:
+        -:  735:
+        -:  736:// Reverses and entry
+    #####:  737:void entry_reverse(entry* e){
+    #####:  738:	if (e->is_simple == false){
+    #####:  739:		printf("Cannot reverse an entry that is not simple!\n");
+    #####:  740:		return;
+        -:  741:	}
+        -:  742:
+    #####:  743:	for (int i = 0; i < e->length/2; i++){
+    #####:  744:		swap(e->values, i, e->length-1-i, sizeof(element));
+        -:  745:	}
+        -:  746:}
+        -:  747:
+        -:  748://! entry* get_all_forward_recursive(entry* e)
+        -:  749:
+        -:  750:// Appends entry to the entry array (not directly to entry->next), MUST reassign to return value due to pass by value
+  1003471:  751:entry** _entries_append(entry** list, entry* e, int* list_size){
+  1003471:  752:	*list_size = *list_size + 1;
+  1003471:  753:	if (*list_size == 1){
+     5305:  754:		list = calloc(1, sizeof(entry*));
+        -:  755:	} else {
+   998166:  756:		list = realloc(list, (*list_size)*sizeof(entry*));
+        -:  757:	}
+  1003471:  758:	list[*list_size-1] = e;
+  1003471:  759:	return list;
+        -:  760:}
+        -:  761:
+    #####:  762:void entry_clear_visits(entry* current_state){
+    #####:  763:	entry* cursor = current_state;
+    #####:  764:	while (cursor != NULL){
+    #####:  765:		cursor->has_visited = false;
+    #####:  766:		cursor = cursor->next;
+        -:  767:	}
+    #####:  768:}
+        -:  769:
+        -:  770://! realloc() invalid pointer
+        -:  771://! How to avoid adding the same node over and over again in DFS (same as the copying nodes question) -> check clone graph question on leetcode (but that only works for limited nodes, where each node has one value -> can't use array trick, must use hashmap here)
+        -:  772://! example solution will be to add all elements to the array 
+        -:  773://! Boss solution: Create own set/hashmap data structure that works with any input so you can perform traversals without repetiiton yet also do it in constant time (need to write own hash function though)
+     3145:  774:entry** _get_forward_links(entry* e, int* size){
+     3145:  775:	entry** forwards = NULL;
+     3145:  776:	entry** next_forwards = NULL;
+     3145:  777:	int next_size = 0;
+        -:  778:
+        -:  779:	// Base case - If the current entry has already been visited i.e. added to forwards list, don't add it again
+     3145:  780:	e->has_visited = true;
+        -:  781:
+        -:  782:	// Add all forwards list 
+  1501846:  783:	for (int i = 0; i < e->forward_size; i++){
+  1498701:  784:		entry* forward_link = e->forward[i];
+        -:  785:		
+  1498701:  786:		if (forward_link->has_visited == true) continue;	
+        -:  787:
+        -:  788:		// Resize forwards and add link to end of list
+     3105:  789:		forwards = _entries_append(forwards, forward_link, size);	//! Need to get the new forwards value because of pass by value unless you use triple pointer
+        -:  790:	
+        -:  791:		// DFS forward - Get array containing recursive (only if the entry is not marked as visited)
+     3105:  792:		next_size = 0; //? next_size resetted for every iteration of the loop
+     3105:  793:		next_forwards = _get_forward_links(forward_link, &next_size);
+        -:  794:	
+        -:  795:		// Attach fowards from recursive call to end of current list		
+     3105:  796:		if (next_size > 0){
+     3038:  797:			*size += next_size;
+     3038:  798:			forwards = realloc(forwards, (*size)*sizeof(entry*));		
+     3038:  799:			memcpy(forwards+*size-next_size, next_forwards, next_size*sizeof(entry*));
+     3038:  800:			free(next_forwards);
+        -:  801:		}
+        -:  802:	}
+        -:  803:	
+     3145:  804:	return forwards;
+        -:  805:}
+        -:  806:
+        -:  807:
+        -:  808://! Calling array should free the array
+        -:  809:// Returns array containing all forward_entries, with int telling the length of the entry array
+       40:  810:entry** get_forward_links(entry* e, int* size){
+       40:  811:	entry** forwards = _get_forward_links(e, size);
+       40:  812:	e->has_visited = false;
+     3145:  813:	for (int i = 0; i < *size; i++){
+     3105:  814:		forwards[i]->has_visited = false;
+        -:  815:	}	
+       40:  816:	return forwards;
+        -:  817:}
+        -:  818:
+     1046:  819:entry** _get_backward_links(entry* e, int* size){
+        -:  820:	entry** backwards;
+        -:  821:	entry** next_backwards;
+     1046:  822:	int next_size = 0;
+        -:  823:
+        -:  824:	// Base case - If the current entry has already been visited i.e. added to forwards list, don't add it again
+     1046:  825:	e->has_visited = true;
+        -:  826:
+        -:  827:	// Add all forwards list 
+   500587:  828:	for (int i = 0; i < e->backward_size; i++){
+   499541:  829:		entry* backward_link = e->backward[i];
+        -:  830:		
+   499541:  831:		if (backward_link->has_visited == true) continue;	
+        -:  832:
+        -:  833:		// Resize forwards and add link to end of list
+     1026:  834:		backwards = _entries_append(backwards, backward_link, size);	//! Need to get the new forwards value because of pass by value unless you use triple pointer
+        -:  835:	
+        -:  836:		// DFS forward - Get array containing recursive (only if the entry is not marked as visited)
+     1026:  837:		next_size = 0; //? next_size resetted for every iteration of the loop
+     1026:  838:		next_backwards = _get_backward_links(backward_link, &next_size);
+        -:  839:	
+        -:  840:		// Attach fowards from recursive call to end of current list		
+     1026:  841:		if (next_size > 0){
+        6:  842:			*size += next_size;
+        6:  843:			backwards = realloc(backwards, (*size)*sizeof(entry*));		
+        6:  844:			memcpy(backwards+*size-next_size, next_backwards, next_size*sizeof(entry*));
+        6:  845:			free(next_backwards);
+        -:  846:		}
+        -:  847:	}
+        -:  848:	
+     1046:  849:	return backwards;
+        -:  850:}
+        -:  851:
+       20:  852:entry** get_backward_links(entry* e, int* size){
+       20:  853:	entry** backwards = _get_backward_links(e, size);
+       20:  854:	e->has_visited = false;
+     1046:  855:	for (int i = 0; i < *size; i++){
+     1026:  856:		backwards[i]->has_visited = false;
+        -:  857:	}
+       20:  858:	return backwards;
+        -:  859:}
+        -:  860:
+        -:  861:// the elements we want to compare are of type entry* but we put &(entry*) in the args so need to double dereference
+    11645:  862:int entry_keycomp(const void* e1, const void* e2){
+    11645:  863:	entry** entry_1 = (entry**) e1;
+    11645:  864:	entry** entry_2 = (entry**) e2; 
+        -:  865:	// printf("%s %s %d ", entry_1[0]->key, entry_2[0]->key, strcmp(entry_1[0]->key, entry_2[0]->key));
+    11645:  866:	int result = strcmp(entry_1[0]->key, entry_2[0]->key);
+    11645:  867:	return result;
+        -:  868:}
+        -:  869:
+       19:  870:void entry_forward(entry* e){
+       19:  871:	int size = 0;
+       19:  872:	entry** forward_entries = get_forward_links(e, &size);	
+        -:  873:	// printf("size: %d\n", size);
+       19:  874:	qsort(forward_entries, size, sizeof(entry*), &entry_keycomp);
+        -:  875:
+        -:  876:	// TODO: Sort to lexicographical order;
+       19:  877:	e->has_visited = false;
+     1065:  878:	for (int i = 0; i < size; i++){
+     1046:  879:		printf("%s ", forward_entries[i]->key);
+        -:  880:	}
+        -:  881:
+       19:  882:	if (size == 0){
+        3:  883:		printf("nil\n");
+        -:  884:	} else {
+       16:  885:		free(forward_entries);
+       16:  886:		printf("\n");
+        -:  887:	}
+       19:  888:}
+        -:  889:
+        -:  890://! Memory reference issue, list entries can get the entries, but it is terminated by null byte
+        -:  891:// TODO: Function is recursive -> keep adding backwards links to char list until no more backwards
+        -:  892://? Does not return correct backward references.
+       20:  893:void entry_backward(entry* e){
+       20:  894:	int size = 0;
+       20:  895:	entry** backward_entries = get_backward_links(e, &size);	
+       20:  896:	qsort(backward_entries, size, sizeof(entry*), entry_keycomp);
+        -:  897:	// Loop through all entries and reset their visited value;
+        -:  898:
+        -:  899:	// Sort to lexicographical order;
+       20:  900:	e->has_visited = false;
+     1046:  901:	for (int i = 0; i < size; i++){
+     1026:  902:		printf("%s ", backward_entries[i]->key);
+        -:  903:		// backward_entries[i]->has_visited = false;
+        -:  904:	}
+        -:  905:
+       20:  906:	if (size == 0){
+        5:  907:		printf("nil\n");
+        -:  908:	} else {
+       15:  909:		free(backward_entries);
+       15:  910:		printf("\n");
+        -:  911:	}
+       20:  912:}
+        -:  913:
+    #####:  914:void entry_type(entry* e){
+    #####:  915:	if (e->is_simple){
+    #####:  916:		printf("The entry is simple\n");
+        -:  917:	} else {
+    #####:  918:		printf("The entry is general\n");
+        -:  919:	}
+    #####:  920:}
+        -:  921:
+        -:  922://! Would this count as quadratic time? Ask about this, if so don't delete the back links
+       50:  923:void _rm_forward_links_to(entry* e){
+        -:  924:	// Remove each back link to e every for every forward link e has
+     2133:  925:	for (int i = 0; i < e->forward_size; i++){
+     2083:  926:		entry* forward_link = e->forward[i];
+     2083:  927:		forward_link->backward = _entries_remove(forward_link->backward, &forward_link->backward_size, e);
+        -:  928:	}
+       50:  929:}
+        -:  930:
+       50:  931:void _rm_backward_links_to(entry* e){
+        -:  932:	// Remove forward links to e for every back link e has
+      50*:  933:	for (int i = 0; i < e->backward_size; i++){
+    #####:  934:		entry* backward_link = e->backward[i];
+    #####:  935:		backward_link->forward = _entries_remove(backward_link->forward, &backward_link->forward_size, e);
+        -:  936:	}
+       50:  937:}
+        -:  938:
+      143:  939:bool entry_candel(entry* e){
+      143:  940:	return e->backward_size == 0;
+        -:  941:}
+        -:  942:
+       50:  943:void entry_delete(entry* e, entry** current_state_ptr){
+       50:  944:	_inspect_state();
+        -:  945:
+       50:  946:	if (!entry_candel(e)){
+    #####:  947:		return;
+        -:  948:	} else {
+       50:  949:		_rm_forward_links_to(e);
+       50:  950:		_rm_backward_links_to(e);
+        -:  951:
+       50:  952:		entry* before = e->prev;
+       50:  953:		entry* after = e->next;
+        -:  954:
+        -:  955:		// Reset before and after links
+       50:  956:		if (before != NULL){
+       31:  957:			before->next = after;
+        -:  958:		}
+       50:  959:		if (after != NULL){
+       14:  960:			after->prev = before;
+        -:  961:		}
+        -:  962:
+        -:  963:		// Reset current state
+       50:  964:		if ((*current_state_ptr)->key == e->key){
+       19:  965:			*current_state_ptr = e->next;
+        -:  966:		}	
+        -:  967:
+       50:  968:		entry_free(e);
+       50:  969:		_inspect_state();
+        -:  970:	}
+        -:  971:}
+        -:  972:
+       55:  973:int element_compare(const void* e1, const void* e2){
+       55:  974:	element* element_1 = (element*) e1;
+       55:  975:	element* element_2 = (element*) e2;
+       55:  976:	int result = element_1->value - element_2->value; 
+       55:  977:	return result;
+        -:  978:}
+        -:  979:
+        -:  980:// Use C library's sorting algos
+        2:  981:void entry_sort(entry* e){
+        2:  982:	qsort(e->values, e->length, sizeof(element), &element_compare); //? Seems like we don't need to add the & sign next to function to make it a function pointer?
+        2:  983:}
+        -:  984:
+    #####:  985:void entry_unique(entry* e){
+    #####:  986:	if (e->is_simple == false){
+    #####:  987:		printf("Cannot make unique an entry that is not simple!\n");
+        -:  988:	}
+        -:  989:
+    #####:  990:	element* new_values = calloc(e->length, sizeof(element));
+    #####:  991:	element* last_word = NULL; //! Set it to null or you'll get stack underflow error (last_word == NULl) does not work
+    #####:  992:	element* cursor = e->values;
+        -:  993:
+    #####:  994:	int new_size = 0;
+    #####:  995:	for (int i = 0; i < e->length; i++){
+    #####:  996:		if (last_word == NULL || element_compare(last_word, cursor) != 0){
+    #####:  997:			memcpy(new_values+new_size, cursor, sizeof(element));
+    #####:  998:			new_size++;
+        -:  999:		}
+        -: 1000:
+    #####: 1001:		last_word = cursor;
+    #####: 1002:		cursor++;
+        -: 1003:	}
+    #####: 1004:	new_values = realloc(new_values, new_size*sizeof(element));
+    #####: 1005:	free(e->values); //TODO: Effectively free these values
+    #####: 1006:	e->length = new_size;
+    #####: 1007:	e->values = new_values;
+        -: 1008:
+    #####: 1009:}
+        -: 1010:
+       20: 1011:void entry_pick(entry* e, int index){	
+       20: 1012:	if (e->length == 0){
+    #####: 1013:		printf("nil\n");
+    #####: 1014:		return;
+        -: 1015:	}
+        -: 1016:	
+       20: 1017:	if (index < 0 || index >= e->length){
+        3: 1018:		printf("index out of range\n");
+        3: 1019:		return;
+        -: 1020:	}
+        -: 1021:
+        -: 1022:
+       17: 1023:	element* elem = e->values+index;
+        -: 1024:
+        -: 1025:	
+       17: 1026:	if (elem->type == INTEGER){
+        -: 1027:		#if (TEST == 1)
+        -: 1028:			printf("Value at index %d in entry with key %s is: %d\n", index, e->key, elem->value);
+        -: 1029:		#else
+       10: 1030:			printf("%d\n", elem->value);
+        -: 1031:		#endif
+        -: 1032:	} else {
+        -: 1033:		#if (TEST == 1)
+        -: 1034:			printf("Value at index %d in entry with key %s is: %s\n", index, e->key, elem->entry->key);
+        -: 1035:		#else
+        7: 1036:			printf("%s\n", elem->entry->key);
+        -: 1037:		#endif
+        -: 1038:	}
+        -: 1039:
+        -: 1040:	
+        -: 1041:
+        -: 1042:}
+        -: 1043:
+        -: 1044:// Extra O(n) operation to calculate local min, max, and sum.
+     6687: 1045:void entry_recalcsmm(entry* e){
+     6687: 1046:	int min = INT_MAX;
+     6687: 1047:	int max = INT_MIN;
+     6687: 1048:	int sum = 0;
+        -: 1049:	// Search through entries to find new min new max
+  2164271: 1050:	for (int i = 0; i < e->length; i++){
+  2157584: 1051:		element* current_element = e->values+i;
+  2157584: 1052:		if (current_element->type != ENTRY){
+        -: 1053:			// Update sum, min, max
+     7943: 1054:			if (current_element->value < min){
+     6704: 1055:				min = current_element->value;
+        -: 1056:			}
+     7943: 1057:			if (current_element->value > max){
+     6868: 1058:				max = current_element->value;
+        -: 1059:			}
+     7943: 1060:			sum += current_element->value;	
+        -: 1061:		}
+        -: 1062:	}	
+     6687: 1063:	e->min = min;
+     6687: 1064:	e->max = max;
+     6687: 1065:	e->sum = sum;
+        -: 1066:	// printf("%s: max: %d min: %d sum: %d ", e->key, e->max, e->min, e->sum);
+        -: 1067:
+     6687: 1068:}
+        -: 1069:
+        -: 1070:
+       17: 1071:void entry_pluck(entry* e, int index){
+        -: 1072:	// printf("%ld\n", e->length);
+        -: 1073:
+       17: 1074:	if (index < 0 || index >= e->length){
+        2: 1075:		printf("index out of range\n");
+        2: 1076:		return;
+        -: 1077:	}	
+        -: 1078:
+       15: 1079:	if (e->length == 0){
+    #####: 1080:		printf("nil\n");
+    #####: 1081:		return;
+        -: 1082:	}
+        -: 1083:
+       15: 1084:	entry_pick(e, index);
+       15: 1085:	element* elem_to_remove = e->values+index;
+       15: 1086:	item_type type = elem_to_remove->type;
+        -: 1087:
+        -: 1088:	// Remove backlinks to e for entries that link back to e due to e containing elem_to_remove
+       15: 1089:	if (type == ENTRY){
+        5: 1090:		entry* forward = elem_to_remove->entry;
+        5: 1091:		forward->backward =_entries_remove(forward->backward, &forward->backward_size, e); // remove back link
+        5: 1092:		e->forward = _entries_remove(e->forward, &e->forward_size, elem_to_remove->entry); // remove forwad link
+        -: 1093:	}
+        -: 1094:	
+       15: 1095:	e->length--;
+       15: 1096:	memmove(elem_to_remove, elem_to_remove+1, (e->length-index)*sizeof(element)); //! Address sanitizer issue -> use memmove instead?
+       15: 1097:	e->values = realloc(e->values, e->length*sizeof(element));
+       15: 1098:	if (type == INTEGER){
+       10: 1099:		entry_recalcsmm(e);
+        -: 1100:	}
+        -: 1101:}
+        -: 1102:
+        4: 1103:void entry_pop(entry* e){
+        -: 1104:	// You cannot have an index out of range error for pop -> always check for length first
+        4: 1105:	if (e->length == 0){
+    #####: 1106:		printf("nil\n");
+    #####: 1107:		return;
+        -: 1108:	}
+        4: 1109:	entry_pluck(e, 0);
+        -: 1110:}
+        -: 1111:
+    #####: 1112:void list_keys(entry** current_state_ptr){
+    #####: 1113:	entry* cursor = *current_state_ptr;
+        -: 1114:
+    #####: 1115:	if (cursor == NULL){
+    #####: 1116:		printf("no keys\n");
+    #####: 1117:		return;
+        -: 1118:	}
+        -: 1119:
+    #####: 1120:	while (cursor != NULL){
+    #####: 1121:		printf("%s\n", cursor->key);
+    #####: 1122:		cursor = cursor->next;
+        -: 1123:	}
+        -: 1124:}
+        -: 1125:
+       81: 1126:void list_entries(entry** current_state_ptr){
+       81: 1127:	entry* cursor = *current_state_ptr;
+        -: 1128:	// TEST = 1;
+        -: 1129:	// _inspect_state();
+        -: 1130:	// TEST = 0;
+       81: 1131:	if (cursor == NULL){
+        7: 1132:		printf("no entries\n");
+        7: 1133:		return;
+        -: 1134:	}
+        -: 1135:
+      290: 1136:	while (cursor != NULL){
+      216: 1137:		printf("%s ", cursor->key);
+      216: 1138:		entry_tostring(cursor); //? Should this display the links as a letter or the elements in that next link?
+      216: 1139:		cursor = cursor->next;
+        -: 1140:	}
+        -: 1141:	// _inspect_state();
+        -: 1142:}
+        -: 1143:
+       12: 1144:void list_snapshots(snapshot** latest_snap_ptr){
+       12: 1145:	snapshot* cursor = *latest_snap_ptr;
+        -: 1146:
+       12: 1147:	if (cursor == NULL){
+    #####: 1148:		printf("no snapshots\n");
+    #####: 1149:		return;
+        -: 1150:	}
+        -: 1151:
+       35: 1152:	while (cursor != NULL){
+       23: 1153:		printf("%d\n", cursor->id);
+       23: 1154:		cursor = cursor->prev;
+        -: 1155:	}
+        -: 1156:}
+        -: 1157:
+       43: 1158:snapshot* snapshot_get(int id, snapshot** latest_snap_ptr){
+       43: 1159:	snapshot* cursor = *latest_snap_ptr;
+       71: 1160:	while (cursor != NULL){
+       60: 1161:		if (id == cursor->id){
+       32: 1162:			return cursor;
+        -: 1163:		}
+       28: 1164:		cursor = cursor->prev;
+        -: 1165:	}
+       11: 1166:	return NULL;
+        -: 1167:}
+        -: 1168:
+        -: 1169:// Creates a copy of the entry inside e->copy_reference that links to all forward entries.
+   500825: 1170:entry* _entry_copy(entry* e){
+        -: 1171:
+        -: 1172:	// Return entry's copy if it has already been copied'
+   500825: 1173:	if (e->copy_reference != NULL){
+   499644: 1174:		return e->copy_reference;
+        -: 1175:	}
+        -: 1176:
+        -: 1177:	// Store unique version of the values for copy
+     1181: 1178:	entry* copy = calloc(1, sizeof(entry));
+     1181: 1179:	element* copy_values = calloc(e->length, sizeof(element));
+        -: 1180:
+        -: 1181:	// Store copy of e's forward entries (new forward array)
+     1181: 1182:	int forward_copies_size = 0;
+     1181: 1183:	entry** forward_copies = NULL;
+        -: 1184:	// entry** forward_copies = calloc(e->forward_size, sizeof(entry*)); //! mem leak
+        -: 1185:
+        -: 1186:	// Copy memory from e for the entry to copy, but clear forward/backward arrays for copies
+     1181: 1187:	memcpy(copy, e, sizeof(entry));
+     1181: 1188:	copy->values = NULL;
+     1181: 1189:	copy->backward_size = 0;
+     1181: 1190:	copy->forward_size = 0;
+     1181: 1191:	copy->backward = NULL;
+     1181: 1192:	copy->forward = NULL;
+        -: 1193:	
+        -: 1194:	// Iterate through all values and make links to copies of forward entries 
+   502167: 1195:	for (int i = 0; i < e->length; i++){
+   500986: 1196:		element* elem = e->values + i;
+   500986: 1197:		element* elem_copy = copy_values + i;
+   500986: 1198:		memcpy(elem_copy, elem, sizeof(element)); //? Copy values over by default, deal with entry case as exception
+   500986: 1199:		if (elem->type == ENTRY){
+        -: 1200:			#if TEST == 1
+        -: 1201:				printf("%s", elem->entry->key);
+        -: 1202:			#endif
+   499670: 1203:			entry* forward_copy = _entry_copy(elem->entry); // TODO: Fix returning of copy reference, nvm it is working. just didn't read right?
+        -: 1204:			
+        -: 1205:			// Connect e to copy of forward link in both ways
+        -: 1206:			// TODO: Check if we made a genuine copy of the forward and backward arrays
+   499670: 1207:			forward_copy->backward = _entries_append(forward_copy->backward, copy, (int*)&forward_copy->backward_size); //! 2 hours spent on figuring out that you should attach copy to back of new entry not old e (used memory address debuggin method)
+   499670: 1208:			forward_copies = _entries_append(forward_copies, forward_copy, (int*)&forward_copies_size);
+   499670: 1209:			elem_copy->type = ENTRY;
+   499670: 1210:			elem_copy->entry = forward_copy; 
+        -: 1211:		} 
+        -: 1212:		
+        -: 1213:	}
+        -: 1214:
+     1181: 1215:	copy->values = copy_values;
+     1181: 1216:	copy->forward = forward_copies;
+     1181: 1217:	copy->forward_size = forward_copies_size;	
+     1181: 1218:	e->copy_reference = copy;
+        -: 1219:
+        -: 1220:
+     1181: 1221:	return copy;
+        -: 1222:}
+        -: 1223:
+        -: 1224:
+        -: 1225://? Could create pointer to last element and just append to that 
+        -: 1226:// Sets the correct next and prev pointers for the snapshot to be appended.
+       36: 1227:void snapshot_append(snapshot* snap, snapshot** latest_snap_ptr){
+       36: 1228:	if (*latest_snap_ptr == NULL){
+       16: 1229:		*latest_snap_ptr = snap;
+        -: 1230:	} else {
+       20: 1231:		(*latest_snap_ptr)->next = snap;
+       20: 1232:		snap->prev = (*latest_snap_ptr);
+       20: 1233:		(*latest_snap_ptr) = snap;
+        -: 1234:	}
+       36: 1235:}
+        -: 1236:
+        -: 1237://?! Are forward and backward entries of a certain entry always going to maintain the same index? probably not? e.g. triangle
+       59: 1238:snapshot* snapshot_create(entry* entries, int id){
+       59: 1239:	entry* cursor = entries;
+       59: 1240:	entry* entries_copy = NULL;
+       59: 1241:	entry* previous = NULL;
+        -: 1242:
+     1240: 1243:	while (cursor != NULL){
+     1181: 1244:		entry* copy = cursor->copy_reference;
+     1181: 1245:		if (copy == NULL){
+     1155: 1246:			copy = _entry_copy(cursor); //! might have corrupted top size with poor management of entry_copy() -> old
+        -: 1247:		}
+        -: 1248:
+        -: 1249:		// Link entry to previous entry in chain
+     1181: 1250:		if (previous != NULL){
+     1124: 1251:			previous->next = copy;
+     1124: 1252:			copy->prev = previous;
+        -: 1253:		} 
+        -: 1254:	
+        -: 1255:		// Ensure entries copy points to first copied entry;
+     1181: 1256:		if (entries_copy == NULL){
+       57: 1257:			entries_copy = copy;
+        -: 1258:		}
+        -: 1259:
+     1181: 1260:		previous = copy;
+     1181: 1261:		cursor = cursor->next;
+        -: 1262:	}
+        -: 1263:
+        -: 1264:	// Set all elements' copy_reference to null after creating snapshot
+       59: 1265:	cursor = entries;
+     1240: 1266:	while (cursor != NULL){
+        -: 1267:		// printf("%s ", cursor->key);
+     1181: 1268:		cursor->copy_reference = NULL;
+     1181: 1269:		cursor->has_visited = false;
+     1181: 1270:		cursor = cursor->next;
+        -: 1271:	}
+        -: 1272:	// printf("\n");
+        -: 1273:
+       59: 1274:	snapshot* new_snapshot = calloc(1, sizeof(snapshot));
+        -: 1275:	// printf("%p\n", entries_copy);
+        -: 1276:	// printf("%s\n", entries_copy->key);
+       59: 1277:	new_snapshot->entries = entries_copy;
+       59: 1278:	new_snapshot->id = id;
+        -: 1279:	// if (last_snapshot != NULL){
+        -: 1280:	// 	new_snapshot->id = last_snapshot->id+1; //TODO: Check if this is the correct id naming system or if you should have global var tracker.
+        -: 1281:	// } else {
+        -: 1282:	// 	new_snapshot->id = 1;
+       59: 1283:	return new_snapshot;
+        -: 1284:}
+        -: 1285:
+        -: 1286:// Free up all the entries in the snapshot
+      102: 1287:void snapshot_free(entry* entries){
+        -: 1288:	
+      102: 1289:	entry* cursor = entries;
+      102: 1290:	entry* old = NULL;
+     2349: 1291:	while (cursor != NULL){
+     2247: 1292:		old = cursor;
+     2247: 1293:		cursor = cursor->next; //! Make sure cursor points a allocated block of memory 
+     2247: 1294:		entry_free(old);
+        -: 1295:	}
+      102: 1296:}
+        -: 1297:
+        -: 1298:
+        -: 1299:
+        -: 1300://! Bug: If you delete a snapsot when there is only one snapshots, subsequent snapshots added will not be found.
+        -: 1301://? error handling done by the main function
+       36: 1302:void snapshot_drop(snapshot* snap, snapshot** latest_snap_ptr){
+       36: 1303:	snapshot* before = snap->prev;
+       36: 1304:	snapshot* after = snap->next;
+        -: 1305:
+        -: 1306:	// Free up all the entries in the snapshot
+        -: 1307:	#if (TEST == 1)
+        -: 1308:		printf("Trying to free entries in the snapshot to be dropped\n");
+        -: 1309:	#endif
+       36: 1310:	snapshot_free(snap->entries); //! Segfault line
+        -: 1311:	#if (TEST == 1)
+        -: 1312:		printf("succesfully freed entries in the snapshot to be dropped\n");
+        -: 1313:	#endif
+        -: 1314:
+        -: 1315:	// Get previous snapshot to point to next snapshot and vice versa
+       36: 1316:	if (after != NULL){
+        3: 1317:		after->prev = before;
+        -: 1318:	}
+        -: 1319:
+       36: 1320:	if (before != NULL){
+       18: 1321:		before->next = after;
+        -: 1322:	}
+        -: 1323:	
+       36: 1324:	if (snap->id == (*latest_snap_ptr)->id){
+       33: 1325:		*latest_snap_ptr = before;
+        -: 1326:	} 
+        -: 1327:	
+        -: 1328:	// else {
+        -: 1329:
+        -: 1330:	// }
+        -: 1331:	
+        -: 1332:	// if (before == NULL){
+        -: 1333:	// 	latest_snapshot = NULL;
+        -: 1334:	// 	first_snapshot = after;
+        -: 1335:	// 	if (first_snapshot == NULL){
+        -: 1336:	// 		latest_snapshot = NULL;
+        -: 1337:	// 	}
+        -: 1338:	// } else if (snap == latest_snapshot) {
+        -: 1339:	// 	latest_snapshot = snap->prev;
+        -: 1340:	// 	before->next = NULL;
+        -: 1341:	// } else {
+        -: 1342:	// 	before->next = after;
+        -: 1343:	// 	after->prev = before;
+        -: 1344:	// }
+        -: 1345:
+        -: 1346:	// // Update first and last snapshot
+        -: 1347:	// //! Last_snapshot needs to be null 
+        -: 1348:
+        -: 1349:	
+        -: 1350:
+        -: 1351:
+       36: 1352:	free(snap);
+        -: 1353:
+       36: 1354:}
+        -: 1355:
+       43: 1356:void program_clear(entry** current_state_ptr, snapshot** latest_snap_ptr){
+       43: 1357:	snapshot* cursor = *latest_snap_ptr; 
+        -: 1358:	snapshot* old;
+        -: 1359:
+       43: 1360:	snapshot_free(*current_state_ptr); 
+        -: 1361:
+       66: 1362:	while (cursor != NULL){
+       23: 1363:		old = cursor;
+       23: 1364:		cursor = cursor->prev;
+       23: 1365:		snapshot_drop(old, latest_snap_ptr);
+        -: 1366:	}
+       43: 1367:}
+        -: 1368:
+        6: 1369:void snapshot_rollback(snapshot* snap, entry** current_state_ptr, snapshot** latest_snap_ptr){
+        6: 1370:	snapshot* cursor = *latest_snap_ptr; 
+        -: 1371:	snapshot* old;
+        -: 1372:
+        6: 1373:	snapshot_free(*current_state_ptr);
+        -: 1374:
+        -: 1375:	// Got the snapshot we want (deleting snapshots along the way)
+       10: 1376:	while (cursor != NULL){
+       10: 1377:		if (cursor == snap){
+        6: 1378:			break;
+        -: 1379:		}
+        4: 1380:		old = cursor;
+        4: 1381:		cursor = cursor->prev;
+        4: 1382:		snapshot_drop(old, latest_snap_ptr);
+        -: 1383:	}
+        -: 1384:
+        -: 1385:	// Create copy of snapshot we want to rollback to
+        6: 1386:	snapshot* snap_copy = snapshot_create(cursor->entries, 0); //! snapshot id does not matter here as we just want the entries
+        6: 1387:	*current_state_ptr = snap_copy->entries;
+        6: 1388:	free(snap_copy);
+        -: 1389:	// Clear the current state (//TODO: Implement deep delete function alongside deep copy function)
+        6: 1390:}
+        -: 1391:
+        -: 1392://! When you checkout to an entry and then drop that entry whilst you're in the snapshot -> you get junk values when you list entries.
+       17: 1393:void snapshot_checkout(snapshot* snap, entry** current_state_ptr){
+        -: 1394:	// Free current state
+       17: 1395:	snapshot_free(*current_state_ptr);
+       17: 1396:	snapshot* snap_copy = snapshot_create(snap->entries, 0);
+       17: 1397:	*current_state_ptr = snap_copy->entries;
+       17: 1398:	free(snap_copy); //? don't need id for copy of snapshot
+       17: 1399:}
+        -: 1400:
+       36: 1401:snapshot* snapshot_save(int id, entry** current_state_ptr, snapshot** latest_snap_ptr){
+       36: 1402:	snapshot* new_snapshot = snapshot_create(*current_state_ptr, id);  //! Snapshots are not freed?
+       36: 1403:	snapshot_append(new_snapshot, latest_snap_ptr);
+       36: 1404:	return new_snapshot;
+        -: 1405:}
+        -: 1406:
+    #####: 1407:int snapshot_size(snapshot* snap){
+    #####: 1408:	int size = 0;
+    #####: 1409:	entry* cursor = snap->entries;
+    #####: 1410:	while (cursor != NULL){
+    #####: 1411:		cursor = cursor->next;
+    #####: 1412:		size++;
+        -: 1413:	}
+    #####: 1414:	return size;
+        -: 1415:}
+        -: 1416:
+        -: 1417:// Returns false if a key with back entries is found in snapshots or current state
+       41: 1418:bool can_purge(char* key, entry** current_state_ptr, snapshot** latest_snap_ptr){
+       41: 1419:	entry* original_state = *current_state_ptr;
+        -: 1420:	entry* to_delete;
+       41: 1421:	snapshot* snap = *latest_snap_ptr;
+        -: 1422:
+       70: 1423:	while (snap != NULL){
+       36: 1424:		*current_state_ptr = snap->entries;
+       36: 1425:		to_delete = entry_get(key, current_state_ptr);
+       36: 1426:		if (to_delete != NULL && !entry_candel(to_delete)){
+        7: 1427:			*current_state_ptr = original_state;
+        7: 1428:			return false;
+        -: 1429:		}
+       29: 1430:		snap->entries = *current_state_ptr; //? Make snapshot possess correct starting entries upon deletion
+       29: 1431:		snap = snap->prev;
+        -: 1432:	}
+        -: 1433:
+       34: 1434:	*current_state_ptr = original_state;
+       34: 1435:	to_delete = entry_get(key, current_state_ptr);
+       34: 1436:	if (to_delete != NULL && !entry_candel(to_delete)){
+        2: 1437:		return false;
+        -: 1438:	}
+        -: 1439:
+       32: 1440:	return true;
+        -: 1441:}
+        -: 1442:
+       16: 1443:void purge(char* key, entry** current_state_ptr, snapshot** latest_snap_ptr){
+        -: 1444:
+       16: 1445:	if (!can_purge(key, current_state_ptr, latest_snap_ptr)){
+    #####: 1446:		printf("not permitted\n");
+    #####: 1447:		return;
+        -: 1448:	}
+        -: 1449:	
+       16: 1450:	entry* original_state = *current_state_ptr;
+       16: 1451:	entry* to_delete = NULL;
+        -: 1452:	
+        -: 1453:	// Find key in snapshots and delete
+       16: 1454:	snapshot* snap = *latest_snap_ptr;
+       30: 1455:	while (snap != NULL){
+       14: 1456:		*current_state_ptr = snap->entries;
+       14: 1457:		to_delete = entry_get(key, current_state_ptr);
+        -: 1458:
+        -: 1459:		#if TEST == 1
+        -: 1460:			printf("deleting entries in snapshot %d\n", snap->id);
+        -: 1461:		#endif 
+       14: 1462:		if (to_delete != NULL){
+       13: 1463:			entry_delete(to_delete, current_state_ptr);
+        -: 1464:		}
+       14: 1465:		snap->entries = *current_state_ptr; //? Make snapshot possess correct starting entries upon deletion
+       14: 1466:		snap = snap->prev;
+        -: 1467:	}
+        -: 1468:
+        -: 1469:	// Restore original state after purging
+        -: 1470:	// Find key in current database and delete
+       16: 1471:	*current_state_ptr = original_state;
+       16: 1472:	to_delete = entry_get(key, current_state_ptr);
+       16: 1473:	if (to_delete != NULL){
+       12: 1474:		entry_delete(to_delete, current_state_ptr);
+        -: 1475:	} 
+        -: 1476:
+        -: 1477:}
+        -: 1478:
+       43: 1479:int main(void) {
+        -: 1480:
+       43: 1481:	char line[MAX_LINE];	
+       43: 1482:	int next_snap_id = 1;
+        -: 1483:
+       43: 1484:	entry* current_state = NULL; 
+       43: 1485:	snapshot* latest_snapshot = NULL;
+        -: 1486:
+     7045: 1487:	while (true) {
+     7088: 1488:		printf("> ");
+        -: 1489:	
+     7088: 1490:		if (NULL == fgets(line, MAX_LINE, stdin)) {
+        2: 1491:			printf("\n");
+        2: 1492:			program_clear(&current_state, &latest_snapshot);
+        2: 1493:			command_bye();
+        2: 1494:			return 0;
+        -: 1495:		}
+        -: 1496:
+        -: 1497:		// Process multiple arguments to the command line
+        -: 1498:		# if (PRINT_COMMAND == 1)
+        -: 1499:			printf("%s", line);
+        -: 1500:		#endif
+        -: 1501:
+     7086: 1502:		char* word = strtok(line, " \n\r"); 
+     7086: 1503:		char** args = calloc(MAX_LINE, sizeof(char*));
+     7086: 1504:		size_t args_size = 0;
+   523174: 1505:		while (word != NULL) {
+   516088: 1506:			args[args_size] = word;
+   516088: 1507:			args_size++;
+   516088: 1508:			word = strtok(NULL, " \n\r"); //! Tells the function to use the last string that was inputted into strtok -> returns NULL when it reaches \0 byte in the string
+        -: 1509:		}
+        -: 1510:	
+     7086: 1511:		char* command_type = args[0];
+     7086: 1512:		if (command_type == NULL){
+    #####: 1513:			free(args);
+    #####: 1514:			continue;
+        -: 1515:		}
+        -: 1516:		
+     7086: 1517:		if (strcasecmp(command_type, "SET") == 0){
+     1146: 1518:			entry* e = entry_create(args+1, args_size-1, &current_state); 
+     1146: 1519:			if (e != NULL){
+     1135: 1520:				entry_set(e, &current_state);
+     1135: 1521:				MSG_OK
+        -: 1522:			}
+     5940: 1523:		} else if (strcasecmp(command_type, "PUSH") == 0){
+       36: 1524:			entry* e = entry_get(args[1], &current_state);
+       36: 1525:			if (e == NULL) {
+        1: 1526:				MSG_NOKEY
+        -: 1527:			} else {
+       35: 1528:				if (entry_push(e, args+2, args_size-2, &current_state)){
+       27: 1529:    				MSG_OK
+        -: 1530:                } 
+        -: 1531:			}
+     5904: 1532:		} else if (strcasecmp(command_type, "APPEND") == 0){
+     5521: 1533:			entry* e = entry_get(args[1], &current_state); //? +1 so that we don't include the command in the arguments used to build the entry
+     5521: 1534:			if (e == NULL){
+        1: 1535:				MSG_NOKEY
+        -: 1536:			} else {
+     5520: 1537:                if (entry_append(e, args+2, args_size-2, &current_state)){
+     5515: 1538:    				MSG_OK
+        -: 1539:                }
+        -: 1540:			}
+      383: 1541:		} else if (strcasecmp(command_type, "GET") == 0){
+       10: 1542:			entry* e = entry_get(args[1], &current_state);
+       10: 1543:			if (e == NULL) {
+        1: 1544:				MSG_NOKEY
+        -: 1545:			} else {
+        9: 1546:				entry_tostring(e);
+        -: 1547:			}
+      373: 1548:		} else if (strcasecmp(command_type, "DEL") == 0){
+       38: 1549:			entry* e = entry_get(args[1], &current_state);
+       38: 1550:			if (e == NULL){
+        5: 1551:				MSG_NOKEY
+       33: 1552:			} else if (!entry_candel(e)){
+        8: 1553:				MSG_NOPERM
+        -: 1554:			} else {
+       25: 1555:				entry_delete(e, &current_state);
+       25: 1556:				MSG_OK
+        -: 1557:			}
+        -: 1558:			// fwrapper_entry(e, &entry_delete);
+      335: 1559:		} else if (strcasecmp(command_type, "MIN") == 0){
+        2: 1560:			entry* e = entry_get(args[1], &current_state);
+        2: 1561:			if (e == NULL) {
+    #####: 1562:				MSG_NOKEY
+        -: 1563:			} else {
+        2: 1564:				entry_min(e);
+        -: 1565:			}			
+      333: 1566:		} else if (strcasecmp(command_type, "MAX") == 0){
+        3: 1567:			entry* e = entry_get(args[1], &current_state);
+        3: 1568:			if (e == NULL) {
+    #####: 1569:				MSG_NOKEY
+        -: 1570:			} else {
+        3: 1571:				entry_max(e);
+        -: 1572:			}	
+      330: 1573:		} else if (strcasecmp(command_type, "SUM") == 0){
+        9: 1574:			entry* e = entry_get(args[1], &current_state); // TODO: Add local sum, max, len so you don't have to sum degrees.
+        9: 1575:			if (e == NULL){
+    #####: 1576:				MSG_NOKEY
+        -: 1577:			} else {
+        9: 1578:				entry_sum(e);
+        -: 1579:			}
+      321: 1580:		} else if (strcasecmp(command_type, "LEN") == 0){
+        7: 1581:			entry* e = entry_get(args[1], &current_state);
+        7: 1582:			if (e == NULL) {
+    #####: 1583:				MSG_NOKEY
+        -: 1584:			} else {
+        7: 1585:				entry_len(e);
+        -: 1586:			}
+      314: 1587:		} else if (strcasecmp(command_type, "SORT") == 0){
+        2: 1588:			entry* e = entry_get(args[1], &current_state);
+        2: 1589:            if (e == NULL){
+    #####: 1590:                MSG_NOKEY
+        -: 1591:            } else{
+        2: 1592:                if (e->is_simple == false){
+    #####: 1593:			    	printf("simple entry only\n");
+        -: 1594:			    } else {
+        2: 1595:                    entry_sort(e);
+        2: 1596:                    MSG_OK
+        -: 1597:                }  
+        -: 1598:            }
+      312: 1599:		} else if (strcasecmp(command_type, "REV") == 0){
+    #####: 1600:			entry* e = entry_get(args[1], &current_state);
+    #####: 1601:			if (e == NULL){
+    #####: 1602:                MSG_NOKEY
+        -: 1603:            } else{
+    #####: 1604:                if (e->is_simple == false){
+    #####: 1605:			    	printf("simple entry only\n");
+        -: 1606:			    } else {
+    #####: 1607:                    entry_reverse(e);
+    #####: 1608:                    MSG_OK
+        -: 1609:                }  
+        -: 1610:            }
+      312: 1611:		} else if (strcasecmp(command_type, "UNIQ") == 0){
+    #####: 1612:			entry* e = entry_get(args[1], &current_state); //TODO: add input verification and also checking that entry exists
+    #####: 1613:			if (e == NULL){
+    #####: 1614:                MSG_NOKEY
+        -: 1615:            } else{
+    #####: 1616:                if (e->is_simple == false){
+    #####: 1617:			    	printf("simple entry only\n");
+        -: 1618:			    } else {
+    #####: 1619:                    entry_unique(e);
+    #####: 1620:                    MSG_OK
+        -: 1621:                }  
+        -: 1622:            }
+      312: 1623:		} else if (strcasecmp(command_type, "PLUCK") == 0){
+       13: 1624:			entry* e = entry_get(args[1], &current_state);
+       13: 1625:			if (e == NULL) {
+    #####: 1626:				MSG_NOKEY
+        -: 1627:			} else {
+       13: 1628:				if (!string_isnumeric(args[2])){
+    #####: 1629:					printf("Cannot pluck an index that is not numeric!\n");
+        -: 1630:				} else {
+       13: 1631:					int index = atoi(args[2])-1;
+       13: 1632:					entry_pluck(e, index);	
+        -: 1633:				}	
+        -: 1634:			}
+      299: 1635:		} else if (strcasecmp(command_type, "PICK") == 0){
+        7: 1636:			entry* e = entry_get(args[1], &current_state);
+        7: 1637:			if (e == NULL) {
+        2: 1638:				MSG_NOKEY
+        -: 1639:			} else {
+        5: 1640:				if (!string_isnumeric(args[2])){
+    #####: 1641:					printf("Cannot pick an index that is not numeric!\n");
+        -: 1642:				} else {
+        5: 1643:					int index = atoi(args[2])-1;
+        5: 1644:					entry_pick(e, index);	
+        -: 1645:				}
+        -: 1646:			}
+      292: 1647:		} else if (strcasecmp(command_type, "POP") == 0){
+        5: 1648:			entry* e = entry_get(args[1], &current_state);
+        5: 1649:			if (e == NULL){
+        1: 1650:				MSG_NOKEY
+        -: 1651:			} else {
+        4: 1652:				entry_pop(e);
+        -: 1653:			}
+      287: 1654:		} else if (strcasecmp(command_type, "FORWARD") == 0){
+       23: 1655:			entry* e = entry_get(args[1], &current_state);
+       23: 1656:			if (e == NULL){	
+        4: 1657:				MSG_NOKEY  
+        -: 1658:			} else {
+       19: 1659:				entry_forward(e);
+        -: 1660:			}
+      264: 1661:		} else if (strcasecmp(command_type, "BACKWARD") == 0){
+       23: 1662:			entry* e = entry_get(args[1], &current_state);
+       23: 1663:			if (e == NULL){	
+        3: 1664:				MSG_NOKEY  
+        -: 1665:			} else {
+       20: 1666:				entry_backward(e);
+        -: 1667:			}
+      241: 1668:		} else if (strcasecmp(command_type, "PURGE") == 0){
+       25: 1669:			char* key = args[1];
+       25: 1670:			if (!can_purge(key, &current_state, &latest_snapshot)){
+        9: 1671:				MSG_NOPERM
+        -: 1672:			} else {
+       16: 1673:				purge(key, &current_state, &latest_snapshot);
+       16: 1674:				MSG_OK
+        -: 1675:			}
+      216: 1676:		}  else if (strcasecmp(command_type, "TYPE") == 0){
+    #####: 1677:			entry* e = entry_get(args[1], &current_state);
+    #####: 1678:			if (e == NULL) {
+    #####: 1679:				MSG_NOKEY //TODO: Use function pointers (create wrapper function) to call any functions that use the get entry method.
+        -: 1680:			} else {
+    #####: 1681:				entry_type(e);
+        -: 1682:			}
+      216: 1683:		} else if (strcasecmp(command_type, "LIST") == 0){
+       93: 1684:			char* option = args[1];
+       93: 1685:			if (strcasecmp(option, "KEYS") == 0){
+    #####: 1686:				list_keys(&current_state);
+       93: 1687:			} else if (strcasecmp(option, "ENTRIES") == 0){
+       81: 1688:				list_entries(&current_state);
+       12: 1689:			} else if (strcasecmp(option, "SNAPSHOTS") == 0){
+       12: 1690:				list_snapshots(&latest_snapshot);
+        -: 1691:			} 
+      123: 1692:		} else if (strcasecmp(command_type, "SNAPSHOT") == 0){
+       36: 1693:		 	snapshot* snap = snapshot_save(next_snap_id++, &current_state, &latest_snapshot);
+       36: 1694:			printf("saved as snapshot %d\n", snap->id);
+       87: 1695:		} else if (strcasecmp(command_type, "DROP") == 0){ //! Segfaults
+       10: 1696:			if (!string_isnumeric(args[1])){
+    #####: 1697:				printf("You must provide a valid ID for a snapshot!\n");
+        -: 1698:			} else {
+       10: 1699:				int id = atoi(args[1]);
+       10: 1700:				snapshot* snap = snapshot_get(id, &latest_snapshot);
+       10: 1701:				if (snap == NULL){
+        1: 1702:					MSG_NOSNAP
+        -: 1703:				} else {
+        9: 1704:					snapshot_drop(snap, &latest_snapshot);
+        9: 1705:					MSG_OK
+        -: 1706:				}
+        -: 1707:			}
+       77: 1708:		} else if (strcasecmp(command_type, "ROLLBACK") == 0){ //! Segfaults
+        9: 1709:			if (!string_isnumeric(args[1])){
+    #####: 1710:				printf("You must provide a valid ID for a snapshot!\n");
+        -: 1711:			} else {
+        9: 1712:				int id = atoi(args[1]);
+        9: 1713:				snapshot* snap = snapshot_get(id, &latest_snapshot);
+        9: 1714:				if (snap == NULL){
+        3: 1715:					MSG_NOSNAP
+        -: 1716:				} else {
+        6: 1717:					snapshot_rollback(snap, &current_state, &latest_snapshot);
+        6: 1718:					MSG_OK
+        -: 1719:				}
+        -: 1720:			}
+       68: 1721:		} else if (strcasecmp(command_type, "CHECKOUT") == 0){
+       26: 1722:			if (!string_isnumeric(args[1])){
+        2: 1723:				printf("You must provide a valid ID for a snapshot!\n");
+        -: 1724:			} else {
+       24: 1725:				int id = atoi(args[1]);
+       24: 1726:				snapshot* snap = snapshot_get(id, &latest_snapshot);
+       24: 1727:				if (snap == NULL){
+        7: 1728:					MSG_NOSNAP
+        -: 1729:				} else {
+       17: 1730:					snapshot_checkout(snap, &current_state);
+       17: 1731:					MSG_OK
+        -: 1732:				}
+        -: 1733:			}
+       42: 1734:		} else if (strcasecmp(command_type, "HELP") == 0){
+    #####: 1735:		 	command_help();
+       42: 1736:		} else if (strcasecmp(command_type, "BYE") == 0){
+       41: 1737:			command_bye();
+       41: 1738:			program_clear(&current_state, &latest_snapshot); 
+       41: 1739:			free(args);
+       41: 1740:			return 0;
+        -: 1741:		}
+        -: 1742:
+     7045: 1743:		printf("\n");
+     7045: 1744:		free(args);
+        -: 1745:  	}
+        -: 1746:
+        -: 1747:	return 0;
+        -: 1748:}

@@ -40,6 +40,14 @@ void fwrapper_entry(entry* e, void f(entry*)){
 	}
 }
 
+void update_is_simple(entry* e){
+	if (e->forward_size > 0){
+		e->is_simple = false;
+	} else {
+		e->is_simple = true;
+	}
+}
+
 void swap(void* a1, int idx1, int idx2, size_t size_each_elem){
 	void* temp = calloc(1, size_each_elem);
 	memcpy(temp, a1+idx1*size_each_elem, size_each_elem); 
@@ -268,7 +276,8 @@ bool entry_append(entry* e, char** args, size_t args_size, entry** current_state
 
 	free(elements);
 	entry_recalcsmm(e);
-    return true;
+    update_is_simple(e);
+	return true;
 }
 
 // Reverses an array in O(n) time
@@ -300,11 +309,13 @@ bool entry_push(entry* e, char** args, size_t args_size, entry** current_state_p
 		if (current_element->type == ENTRY){
 			entry* forward_link = current_element->entry;
 			entry_connect(e, forward_link);
+			e->is_simple = false;
 		} 
 	}	
 
 	free(elements); // Remove the elements array (copy is in entry)
 	entry_recalcsmm(e);
+	update_is_simple(e);
     return true;
 }
 
@@ -913,9 +924,9 @@ void entry_backward(entry* e){
 
 void entry_type(entry* e){
 	if (e->is_simple){
-		printf("The entry is simple\n");
+		printf("simple\n");
 	} else {
-		printf("The entry is general\n");
+		printf("general\n");
 	}
 }
 
@@ -1068,6 +1079,7 @@ void entry_recalcsmm(entry* e){
 }
 
 
+
 void entry_pluck(entry* e, int index){
 	// printf("%ld\n", e->length);
 
@@ -1098,6 +1110,8 @@ void entry_pluck(entry* e, int index){
 	if (type == INTEGER){
 		entry_recalcsmm(e);
 	}
+
+	update_is_simple(e);
 }
 
 void entry_pop(entry* e){
