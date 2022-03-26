@@ -1270,9 +1270,6 @@ void snapshot_drop(snapshot* snap, snapshot** latest_snap_ptr){
 	
 	if (snap->id == (*latest_snap_ptr)->id){
 		*latest_snap_ptr = before;
-		// if (latest_snapshot != NULL){
-		// 	latest_snapshot->next = NULL;
-		// }
 	} 
 	
 	// else {
