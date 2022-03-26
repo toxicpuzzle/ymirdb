@@ -1,0 +1,26 @@
+> ok
+
+> no such key
+
+> ok
+
+> no such key
+
+> ok
+
+> not permitted
+
+> ok
+
+> b
+
+> index out of range
+
+> b [2 3]
+a [1 2 3 b]
+
+> b 
+
+> a 
+
+> bye

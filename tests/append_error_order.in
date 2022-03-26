@@ -1,0 +1,12 @@
+SET a 1 2 3
+APPEND a b 
+SET b 2 3
+APPEND a b k a
+APPEND a b
+APPEND a a
+APPEND b b a
+APPEND b 12sf b
+APPEND aa bb
+APPEND a b
+LIST ENTRIES
+bye

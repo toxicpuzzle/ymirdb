@@ -229,10 +229,34 @@ void state_push(entry* e, entry** current_state_ptr){
 	}
 }
 
-// Appends values to an entry's values array
-void entry_append(entry* e, char** args, size_t args_size, entry** current_state_ptr){
+bool _entry_values_change_is_valid(entry* e, size_t len, element* elements){
+    // Check none of the elements pushed result in cycle or non-existant key
+    for (int i = 0; i < len; i++){
+        element* current_element = elements+i;
+        if (current_element->type == ENTRY){
+            entry* forward_link = current_element->entry;
+            if (forward_link == NULL){
+                printf("no such key\n");
+                return false;
+            } else if (strcmp(forward_link->key, e->key) == 0){
+                printf("not permitted\n");
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// Appends values to an entry's values array, returns false if failed
+bool entry_append(entry* e, char** args, size_t args_size, entry** current_state_ptr){
 	// Create array of elements to attach to the entry
 	element* elements = elements_create(args, args_size, current_state_ptr);
+    
+    if (!_entry_values_change_is_valid(e, args_size, elements)){
+        free(elements);
+        return false;
+    }
+    
 	int old_length = e->length;
 	e->length = e->length + args_size;
 	e->values = realloc(e->values,	(e->length)*sizeof(element)); 
@@ -249,7 +273,7 @@ void entry_append(entry* e, char** args, size_t args_size, entry** current_state
 
 	free(elements);
 	entry_recalcsmm(e);
-
+    return true;
 }
 
 // Reverses an array in O(n) time
@@ -259,11 +283,18 @@ void _reverse_array(void* array, int length, size_t size){
 	}
 }
 
-// Pushes values to an entry's values array
-void entry_push(entry* e, char** args, size_t args_size, entry** current_state_ptr){
+// Pushes values to an entry's values array, returns false if failed
+bool entry_push(entry* e, char** args, size_t args_size, entry** current_state_ptr){
 	// Create array of elements to attach to the entry
 	element* elements = elements_create(args, args_size, current_state_ptr);
-	_reverse_array((void*)elements, (int)args_size, sizeof(element));
+
+    if (!_entry_values_change_is_valid(e, args_size, elements)){
+        free(elements);
+        return false;
+    }
+
+
+    _reverse_array((void*)elements, (int)args_size, sizeof(element));
 	e->length = e->length + args_size;
 	e->values = realloc(e->values,	(e->length)*sizeof(element)); 
 	memmove(e->values+args_size, e->values, sizeof(element)*(e->length-args_size));
@@ -279,6 +310,7 @@ void entry_push(entry* e, char** args, size_t args_size, entry** current_state_p
 
 	free(elements); // Remove the elements array (copy is in entry)
 	entry_recalcsmm(e);
+    return true;
 }
 
 // Prints out the minimum value for an entry
@@ -1443,16 +1475,18 @@ int main(void) {
 			if (e == NULL) {
 				MSG_NOKEY
 			} else {
-				entry_push(e, args+2, args_size-2, &current_state); //TODO: make it so teh push is not atoi
-				MSG_OK
+				if (entry_push(e, args+2, args_size-2, &current_state)){
+    				MSG_OK
+                } 
 			}
 		} else if (strcasecmp(command_type, "APPEND") == 0){
 			entry* e = entry_get(args[1], &current_state); //? +1 so that we don't include the command in the arguments used to build the entry
 			if (e == NULL){
 				MSG_NOKEY
 			} else {
-				entry_append(e, args+2, args_size-2, &current_state);
-				MSG_OK
+                if (entry_append(e, args+2, args_size-2, &current_state)){
+    				MSG_OK
+                }
 			}
 		} else if (strcasecmp(command_type, "GET") == 0){
 			entry* e = entry_get(args[1], &current_state);

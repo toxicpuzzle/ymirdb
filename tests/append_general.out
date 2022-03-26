@@ -17,13 +17,23 @@ a [1 b c d]
 
 > ok
 
+> b c d 
+
 > ok
 
+> b c d e 
+
+> a 
+
+> ok
+
+> b c d e 
+
 > e [1]
 d [1]
 c [1]
 b [1]
-a [1 b c d e]
+a [1 b c d e c d]
 
 > not permitted
 
@@ -31,7 +41,7 @@ a [1 b c d e]
 d [1]
 c [1]
 b [1]
-a [1 b c d e]
+a [1 b c d e c d]
 
 > not permitted
 
@@ -39,7 +49,7 @@ a [1 b c d e]
 d [1]
 c [1]
 b [1]
-a [1 b c d e]
+a [1 b c d e c d]
 
 > ok
 

@@ -1,5 +1,32 @@
 bash test.sh
  
+===== Executing test case: tests/append_error_order =====
+ 
+> ok
+
+> no such key
+
+> ok
+
+> no such key
+
+> ok
+
+> not permitted
+
+> not permitted
+
+> no such key
+
+> no such key
+
+> ok
+
+> b [2 3]
+a [1 2 3 b b]
+
+> bye
+ 
 ===== Executing test case: tests/append_general =====
  
 > ok
@@ -21,13 +48,23 @@ a [1 b c d]
 
 > ok
 
+> b c d 
+
 > ok
+
+> b c d e 
+
+> a 
+
+> ok
+
+> b c d e 
 
 > e [1]
 d [1]
 c [1]
 b [1]
-a [1 b c d e]
+a [1 b c d e c d]
 
 > not permitted
 
@@ -35,7 +72,7 @@ a [1 b c d e]
 d [1]
 c [1]
 b [1]
-a [1 b c d e]
+a [1 b c d e c d]
 
 > not permitted
 
@@ -43,7 +80,7 @@ a [1 b c d e]
 d [1]
 c [1]
 b [1]
-a [1 b c d e]
+a [1 b c d e c d]
 
 > ok
 
@@ -51,6 +88,21 @@ a [1 b c d e]
 d [1]
 c [1]
 b [1]
+
+> bye
+ 
+===== Executing test case: tests/append_success_order =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> b [2 3 3 2 1]
+a [1 2 3 3 2 1 b]
 
 > bye
  
@@ -342,7 +394,7 @@ a [1]
 > 
 bye
  
-===== Executing test case: tests/forward_lexigraph_order =====
+===== Executing test case: tests/forwardbackward_lexigraph_order =====
  
 > ok
 
@@ -370,7 +422,7 @@ bye
 
 > bye
  
-===== Executing test case: tests/forward_no_duplicates =====
+===== Executing test case: tests/forwardbackward_no_duplicates =====
  
 > ok
 
@@ -381,6 +433,91 @@ bye
 > a 
 
 > b c 
+
+> bye
+ 
+===== Executing test case: tests/forwardbackward_no_keys =====
+ 
+> no such key
+
+> no such key
+
+> no such key
+
+> no such key
+
+> bye
+ 
+===== Executing test case: tests/pick_invalid_index =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> b [12 3]
+a [b 1 2 3 b]
+
+> index out of range
+
+> index out of range
+
+> index out of range
+
+> b
+
+> b
+
+> bye
+ 
+===== Executing test case: tests/pick_invalid_key =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> b [12 3]
+a [b 1 2 3 b]
+
+> no such key
+
+> no such key
+
+> bye
+ 
+===== Executing test case: tests/pluck_forward_gone_after =====
+ 
+> ok
+
+> no such key
+
+> ok
+
+> no such key
+
+> ok
+
+> not permitted
+
+> ok
+
+> b
+
+> index out of range
+
+> b [2 3]
+a [1 2 3 b]
+
+> b 
+
+> a 
 
 > bye
  
@@ -569,6 +706,48 @@ c [7]
 > c [7]
 
 > nil
+
+> bye
+ 
+===== Executing test case: tests/push_error_order =====
+ 
+> ok
+
+> no such key
+
+> ok
+
+> no such key
+
+> ok
+
+> not permitted
+
+> not permitted
+
+> no such key
+
+> no such key
+
+> ok
+
+> b [2 3]
+a [b b 1 2 3]
+
+> bye
+ 
+===== Executing test case: tests/push_success_order =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> b [1 2 3 2 3]
+a [b 1 2 3 1 2 3]
 
 > bye
  
