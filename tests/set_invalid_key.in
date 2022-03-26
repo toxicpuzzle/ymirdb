@@ -1,0 +1,6 @@
+SET 1bz -100 1 001 
+SET +-1 100
+SET ~!2 001
+SET {}1 - +
+LIST ENTRIES
+bye
