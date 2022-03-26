@@ -1502,25 +1502,37 @@ int main(void) {
 			}
 		} else if (strcasecmp(command_type, "SORT") == 0){
 			entry* e = entry_get(args[1], &current_state);
-			if (e->is_simple == false){
-				printf("simple entry only\n");
-			} else {
-				fwrapper_entry(e, &entry_sort);
-			} 
+            if (e == NULL){
+                MSG_NOKEY
+            } else{
+                if (e->is_simple == false){
+			    	printf("simple entry only\n");
+			    } else {
+                    entry_sort(e);
+                }  
+            }
 		} else if (strcasecmp(command_type, "REV") == 0){
 			entry* e = entry_get(args[1], &current_state);
-			if (e->is_simple == false){
-				printf("simple entry only\n");
-			} else {
-				fwrapper_entry(e, &entry_reverse);
-			}
+			if (e == NULL){
+                MSG_NOKEY
+            } else{
+                if (e->is_simple == false){
+			    	printf("simple entry only\n");
+			    } else {
+                    entry_reverse(e);
+                }  
+            }
 		} else if (strcasecmp(command_type, "UNIQ") == 0){
 			entry* e = entry_get(args[1], &current_state); //TODO: add input verification and also checking that entry exists
-			if (e->is_simple == false){
-				printf("simple entry only\n");
-			} else {
-				fwrapper_entry(e, &entry_unique);
-			}
+			if (e == NULL){
+                MSG_NOKEY
+            } else{
+                if (e->is_simple == false){
+			    	printf("simple entry only\n");
+			    } else {
+                    entry_unique(e);
+                }  
+            }
 		} else if (strcasecmp(command_type, "PLUCK") == 0){
 			entry* e = entry_get(args[1], &current_state);
 			if (e == NULL) {
