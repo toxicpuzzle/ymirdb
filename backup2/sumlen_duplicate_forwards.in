@@ -1,0 +1,7 @@
+SET a 1 2 3 
+SET b a 1
+SET c a 2
+SET d b c
+SUM d 
+LEN d 
+bye

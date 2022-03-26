@@ -1,0 +1,111 @@
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> b c d e f g h 
+
+> a b c d e f 
+
+> 0
+
+> 101
+
+> 2711
+
+> 46
+
+> h
+
+> d
+
+> index out of range
+
+> 1
+
+> 17
+
+> 101
+
+> 101
+
+> 1585
+
+> 30
+
+> 99
+
+> b c d e f g h 
+
+> h [99]
+g [h]
+f [h g 23]
+e [1 2 h f]
+d [h g 1 0 2]
+c [22 16 f g d]
+b [c f e 2 56 78]
+a [23 e b]
+
+> not permitted
+
+> saved as snapshot 1
+
+> ok
+
+> saved as snapshot 2
+
+> ok
+
+> saved as snapshot 3
+
+> ok
+
+> not permitted
+
+> ok
+
+> not permitted
+
+> ok
+
+> 1
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> h [99]
+g [h]
+f [h g 23]
+e [1 2 h f]
+
+> bye

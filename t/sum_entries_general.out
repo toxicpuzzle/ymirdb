@@ -1,0 +1,12 @@
+> > > > LIST ENTRIES
+c [7]
+b [3 5 c]
+a [1 2 b]
+> SUM c 
+Sum of values is: 7
+> SUM b
+Sum of values is: 15
+> SUM a
+Sum of values is: 18
+> bye
+bye

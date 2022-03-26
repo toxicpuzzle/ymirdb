@@ -1,13 +1,24 @@
-> SET a 1
-> SET b 1
-> SET e b
-> SET e b a
-> LIST ENTRIES
-a [1]
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> e [b a]
 b [1]
-e [b a]
-> DEL e
-> LIST ENTRIES
 a [1]
-b [1]
-> SET a 1 b
+
+> ok
+
+> b [1]
+a [1]
+
+> ok
+
+> b [1]
+a [1 b]
+
+> 
+bye

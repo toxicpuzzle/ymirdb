@@ -1,24 +1,37 @@
-> SET a 1
-> PURGE a
-> LIST ENTRIES
-> SET a 1
-> LIST ENTRIES
-a [1]
-> SNAPSHOT
-> SET a 1 2
-> SNAPSHOT
-> LIST SNAPSHOTS
-0 1
-> SET b 11
-> LIST ENTRIES
+> ok
+
+> ok
+
+> no entries
+
+> ok
+
+> a [1]
+
+> saved as snapshot 1
+
+> ok
+
+> saved as snapshot 2
+
+> 2
+1
+
+> ok
+
+> b [11]
 a [1 2]
-b [11]
-> PURGE a
-> LIST ENTRIES
-b [11]
-> CHECKOUT 0
-> LIST ENTRIES
-  [-943210480]
-> CHECKOUT 1
-> LIST ENTRIES
- [-943210480 2]
+
+> ok
+
+> b [11]
+
+> ok
+
+> no entries
+
+> ok
+
+> no entries
+
+> bye

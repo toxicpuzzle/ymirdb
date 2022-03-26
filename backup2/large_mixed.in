@@ -1,0 +1,50 @@
+SET a 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET b 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET c 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET d 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET e 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9  
+SET f 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET g 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET h 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET i 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET j 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET k 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET l 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET m 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET n 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET o 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET p 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET q 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+SET r 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9
+APPEND a b c d e f g h i j k l m n o p q r 
+APPEND b c d e f g h i j k l m n o p q r 
+APPEND c d e f g h i j k l m n o p q r 
+APPEND d e f g h i j k l m n o p q r 
+APPEND e f g h i j k l m n o p q r 
+APPEND f g h i j k l m n o p q r 
+APPEND g h i j k l m n o p q r 
+APPEND h i j k l m n o p q r 
+APPEND i j k l m n o p q r 
+APPEND j k l m n o p q r
+APPEND k l m n o p q r  
+APPEND l m n o p q r  
+APPEND m n o p q r  
+APPEND n o p q r  
+APPEND o p q r  
+APPEND p q r
+APPEND q r    
+SNAPSHOT
+SNAPSHOT
+SNAPSHOT
+SNAPSHOT
+SNAPSHOT
+sum a
+max a
+len a
+get a
+BACKWARD a
+forward a
+purge a
+purge b
+del c
+LIST ENTRIES

@@ -1,0 +1,8 @@
+SET a 1
+SET b 1
+SET c 1
+SET d 1
+SET a b c d
+LIST ENTRIES
+PLUCK a 1
+LIST ENTRIES
