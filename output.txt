@@ -86,6 +86,38 @@ b [1]
 
 > bye
  
+===== Executing test case: tests/del_after_check_get_fail =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> saved as snapshot 1
+
+> ok
+
+> no such key
+
+> no such key
+
+> no such key
+
+> no such key
+
+> nil
+
+> b 
+
+> bye
+ 
 ===== Executing test case: tests/del_after_purge_fails =====
  
 > ok
@@ -108,6 +140,8 @@ a [1 2 3]
 
 > ok
 
+> no such key
+
 > ok
 
 > c [a b 1 2]
@@ -115,6 +149,68 @@ b [a 1 2]
 a [1 2 3]
 
 > no such key
+
+> bye
+ 
+===== Executing test case: tests/del_all_entries =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> d [10 20 30]
+c [1 2 3]
+b [d c 1 2 3]
+a [b 1 2 3]
+
+> not permitted
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> no entries
+
+> bye
+ 
+===== Executing test case: tests/del_fail_has_backward =====
+ 
+> ok
+
+> ok
+
+> not permitted
+
+> b [a a a]
+a [1 2 3]
+
+> bye
+ 
+===== Executing test case: tests/del_fail_no_such_key =====
+ 
+> ok
+
+> ok
+
+> no such key
+
+> ok
+
+> no such key
+
+> a [1 2 3]
 
 > bye
  
@@ -144,6 +240,59 @@ a [1 b]
 
 > 
 bye
+ 
+===== Executing test case: tests/del_only_affect_current_state =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> saved as snapshot 1
+
+> ok
+
+> c [7 8 9]
+b [c 4 5 6]
+
+> ok
+
+> c [7 8 9]
+b [c 4 5 6]
+a [b 1 2 3 c]
+
+> ok
+
+> c [7 8 9]
+b [c 4 5 6]
+
+> ok
+
+> c [7 8 9]
+b [c 4 5 6]
+a [b 1 2 3 c]
+
+> ok
+
+> c [7 8 9]
+b [c 4 5 6]
+
+> ok
+
+> ok
+
+> c [7 8 9]
+b [c 4 5 6]
+a [b 1 2 3 c]
+
+> bye
  
 ===== Executing test case: tests/drop_fail_no_snap =====
  
@@ -192,6 +341,102 @@ a [1]
 
 > 
 bye
+ 
+===== Executing test case: tests/forward_lexigraph_order =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> b c d e f 
+
+> a b d f 
+
+> bye
+ 
+===== Executing test case: tests/forward_no_duplicates =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> a 
+
+> b c 
+
+> bye
+ 
+===== Executing test case: tests/purge_affects_all_snaps =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> saved as snapshot 1
+
+> ok
+
+> b [3 5 c]
+c [7]
+
+> no such key
+
+> ok
+
+> a [1 2 b]
+b [3 5 c]
+c [7]
+
+> saved as snapshot 2
+
+> ok
+
+> not permitted
+
+> a [1 2 b]
+b [1 2 3]
+c [7]
+
+> ok
+
+> b [1 2 3]
+c [7]
+
+> ok
+
+> b [3 5 c]
+c [7]
+
+> nil
+
+> ok
+
+> b [3 5 c]
+c [7]
+
+> nil
+
+> bye
  
 ===== Executing test case: tests/purge_fail_snap_backward =====
  
@@ -290,7 +535,7 @@ a [1 2]
 
 > bye
  
-===== Executing test case: tests/purge_sample =====
+===== Executing test case: tests/purge_no_snapshots =====
  
 > ok
 
@@ -298,45 +543,32 @@ a [1 2]
 
 > ok
 
-> saved as snapshot 1
-
 > ok
 
-> b [3 5 c]
-c [7]
-
-> no such key
-
-> ok
-
-> a [1 2 b]
+> d [a b c]
+a [1 2 b c]
 b [3 5 c]
 c [7]
 
-> saved as snapshot 2
-
-> ok
+> not permitted
 
 > not permitted
 
-> a [1 2 b]
-b [1 2 3]
-c [7]
+> not permitted
 
 > ok
 
-> b [1 2 3]
-c [7]
+> ok
 
 > ok
 
-> b [3 5 c]
-c [7]
+> ok
 
 > ok
 
-> b [3 5 c]
-c [7]
+> c [7]
+
+> nil
 
 > bye
  
@@ -514,6 +746,37 @@ a [100 99 88]
 > [100 9]
 
 > [12 23 aB]
+
+> bye
+ 
+===== Executing test case: tests/set_duplicate_general_keys =====
+ 
+> ok
+
+> ok
+
+> 6
+
+> 2
+
+> b [a a 2 2]
+a [1 2]
+
+> bye
+ 
+===== Executing test case: tests/set_fail_own_key_as_key =====
+ 
+> not permitted
+
+> not permitted
+
+> not permitted
+
+> ok
+
+> no such key
+
+> c [1 2 3]
 
 > bye
  

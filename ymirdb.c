@@ -186,11 +186,16 @@ entry* entry_create(char** args, size_t args_size, entry** current_state_ptr){
 			e->is_simple = false;
 			entry* forward_link = entry_get(arg, current_state_ptr);
 			
-			if (forward_link == NULL){
+			if (strcmp(key, arg) == 0){
+				MSG_NOPERM;
+				entry_free(e);
+				return NULL;
+			} else if (forward_link == NULL){
 				MSG_NOKEY
 				entry_free(e);
-				return NULL;;
-			} 
+				return NULL;
+			}  
+
 
 			// Connect elements if forward link is valid (handles adding to )
 			entry_connect(e, forward_link);
