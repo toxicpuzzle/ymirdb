@@ -14473,3 +14473,30 @@ a [1]
 a [1 2 3]
 
 > bye
+ 
+===== Executing test case: tests/uniq_fail_general =====
+ 
+> ok
+
+> ok
+
+> ok
+
+> simple entry only
+
+> ok
+
+> b [1]
+a [b 1 1 2 3 3 5 3 3 6]
+
+> bye
+ 
+===== Executing test case: tests/uniq_simple =====
+ 
+> ok
+
+> ok
+
+> a [1 2 3 5 3 6]
+
+> bye
