@@ -671,18 +671,17 @@ void entry_forward(entry* e){
 	entry** forward_entries = get_forward_links(e, &size);	
 	qsort(forward_entries, size, sizeof(entry*), &entry_keycomp);
 
-	// TODO: Sort to lexicographical order;
-	e->has_visited = false;
-	for (int i = 0; i < size; i++){
-		printf("%s ", forward_entries[i]->key);
-	}
-
 	if (size == 0){
 		printf("nil\n");
+		return;
 	} else {
+		// e->has_visited = false;
+		for (int i = 0; i < size-1; i++){
+			printf("%s, ", forward_entries[i]->key);
+		}
+		printf("%s\n", forward_entries[size-1]->key);
 		free(forward_entries);
-		printf("\n");
-	}
+	} 	
 }
 
 
@@ -693,17 +692,16 @@ void entry_backward(entry* e){
 	// Loop through all entries and reset their visited value;
 
 	// Sort to lexicographical order;
-	e->has_visited = false;
-	for (int i = 0; i < size; i++){
-		printf("%s ", backward_entries[i]->key);
-		// backward_entries[i]->has_visited = false;
-	}
-
 	if (size == 0){
 		printf("nil\n");
+		return;
 	} else {
+		// e->has_visited = false;
+		for (int i = 0; i < size-1; i++){
+			printf("%s, ", backward_entries[i]->key);
+		}
+		printf("%s\n", backward_entries[size-1]->key);
 		free(backward_entries);
-		printf("\n");
 	}
 }
 
