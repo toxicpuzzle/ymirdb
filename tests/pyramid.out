@@ -28,9 +28,9 @@
 
 > ok
 
-> b c d e f g h 
+> b, c, d, e, f, g, h
 
-> a b c d e f 
+> a, b, c, d, e, f
 
 > 0
 
@@ -60,7 +60,7 @@
 
 > 99
 
-> b c d e f g h 
+> b, c, d, e, f, g, h
 
 > h [99]
 g [h]

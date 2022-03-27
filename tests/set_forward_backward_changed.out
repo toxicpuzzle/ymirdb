@@ -20,13 +20,13 @@
 
 > ok
 
-> b c d e 
+> b, c, d, e
 
-> f 
+> f
 
-> a f 
+> a, f
 
-> a b c d e 
+> a, b, c, d, e
 
 > f [a 10]
 e [1]
@@ -41,11 +41,11 @@ a [100 99 b d]
 
 > nil
 
-> f 
+> f
 
 > nil
 
-> a 
+> a
 
 > f [a 10]
 e [1]

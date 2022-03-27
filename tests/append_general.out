@@ -13,21 +13,21 @@ c [1]
 b [1]
 a [1 b c d]
 
-> a 
+> a
 
 > ok
 
-> b c d 
+> b, c, d
 
 > ok
 
-> b c d e 
+> b, c, d, e
 
-> a 
+> a
 
 > ok
 
-> b c d e 
+> b, c, d, e
 
 > e [1]
 d [1]

@@ -52,11 +52,11 @@ a [c 1 2 3]
 
 > ok
 
-> b 
+> b
 
 > no such key
 
-> c 
+> c
 
 > nil
 
