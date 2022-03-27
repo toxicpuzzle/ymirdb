@@ -31,14 +31,14 @@ void entry_free(entry* e);
 
 void _inspect_state();
 
-void fwrapper_entry(entry* e, void f(entry*)){
-	if (e == NULL) {
-		MSG_NOKEY
-	} else {
-		f(e); //TODO: make it so teh push is not atoi
-		MSG_OK
-	}
-}
+// void fwrapper_entry(entry* e, void f(entry*)){
+// 	if (e == NULL) {
+// 		MSG_NOKEY
+// 	} else {
+// 		f(e); //TODO: make it so teh push is not atoi
+// 		MSG_OK
+// 	}
+// }
 
 void update_is_simple(entry* e){
 	if (e->forward_size > 0){
@@ -770,13 +770,13 @@ entry** _entries_append(entry** list, entry* e, int* list_size){
 	return list;
 }
 
-void entry_clear_visits(entry* current_state){
-	entry* cursor = current_state;
-	while (cursor != NULL){
-		cursor->has_visited = false;
-		cursor = cursor->next;
-	}
-}
+// void entry_clear_visits(entry* current_state){
+// 	entry* cursor = current_state;
+// 	while (cursor != NULL){
+// 		cursor->has_visited = false;
+// 		cursor = cursor->next;
+// 	}
+// }
 
 //! realloc() invalid pointer
 //! How to avoid adding the same node over and over again in DFS (same as the copying nodes question) -> check clone graph question on leetcode (but that only works for limited nodes, where each node has one value -> can't use array trick, must use hashmap here)
@@ -939,13 +939,13 @@ void _rm_forward_links_to(entry* e){
 	}
 }
 
-void _rm_backward_links_to(entry* e){
-	// Remove forward links to e for every back link e has
-	for (int i = 0; i < e->backward_size; i++){
-		entry* backward_link = e->backward[i];
-		backward_link->forward = _entries_remove(backward_link->forward, &backward_link->forward_size, e);
-	}
-}
+// void _rm_backward_links_to(entry* e){
+// 	// Remove forward links to e for every back link e has
+// 	for (int i = 0; i < e->backward_size; i++){
+// 		entry* backward_link = e->backward[i];
+// 		backward_link->forward = _entries_remove(backward_link->forward, &backward_link->forward_size, e);
+// 	}
+// }
 
 bool entry_candel(entry* e){
 	return e->backward_size == 0;
@@ -958,7 +958,7 @@ void entry_delete(entry* e, entry** current_state_ptr){
 		return;
 	} else {
 		_rm_forward_links_to(e);
-		_rm_backward_links_to(e);
+		// _rm_backward_links_to(e); // don't need this as no entry deleted would have any backlinks
 
 		entry* before = e->prev;
 		entry* after = e->next;
@@ -1020,10 +1020,10 @@ void entry_unique(entry* e){
 }
 
 void entry_pick(entry* e, int index){	
-	if (e->length == 0){
-		printf("nil\n");
-		return;
-	}
+	// if (e->length == 0){
+	// 	printf("nil\n");
+	// 	return;
+	// }
 	
 	if (index < 0 || index >= e->length){
 		printf("index out of range\n");
@@ -1088,10 +1088,10 @@ void entry_pluck(entry* e, int index){
 		return;
 	}	
 
-	if (e->length == 0){
-		printf("nil\n");
-		return;
-	}
+	// if (e->length == 0){
+	// 	printf("nil\n");
+	// 	return;
+	// }
 
 	entry_pick(e, index);
 	element* elem_to_remove = e->values+index;
@@ -1418,15 +1418,15 @@ snapshot* snapshot_save(int id, entry** current_state_ptr, snapshot** latest_sna
 	return new_snapshot;
 }
 
-int snapshot_size(snapshot* snap){
-	int size = 0;
-	entry* cursor = snap->entries;
-	while (cursor != NULL){
-		cursor = cursor->next;
-		size++;
-	}
-	return size;
-}
+// int snapshot_size(snapshot* snap){
+// 	int size = 0;
+// 	entry* cursor = snap->entries;
+// 	while (cursor != NULL){
+// 		cursor = cursor->next;
+// 		size++;
+// 	}
+// 	return size;
+// }
 
 // Returns false if a key with back entries is found in snapshots or current state
 bool can_purge(char* key, entry** current_state_ptr, snapshot** latest_snap_ptr){

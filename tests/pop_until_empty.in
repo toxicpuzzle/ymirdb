@@ -1,0 +1,7 @@
+SET a 1 2 3
+POP a
+POP a
+POP a
+POP a
+LIST ENTRIES
+bye

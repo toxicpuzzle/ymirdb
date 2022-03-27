@@ -1,0 +1,4 @@
+SET a 1
+POP a
+LEN a
+bye
