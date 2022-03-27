@@ -25,3 +25,5 @@ generalised to implement the len, max, and snapshot-related functions.
 Each entry stores a copy_reference pointer to an entry struct, where a reference to the copied object is temporarily 
 stored. This reference is used by the copying algorithm to ensure forward and backward links of all copied objects
 are linked together. 
+
+test
