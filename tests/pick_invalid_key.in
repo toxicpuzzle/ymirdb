@@ -1,8 +1,0 @@
-SET a 1 2 3
-SET b 12 3
-APPEND a b
-PUSH a b
-LIST ENTRIES
-PICK bb 1
-PICK invalid_key 10
-bye

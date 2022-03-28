@@ -3,7 +3,7 @@ import math
 from random import random
 import sys
 
-entries : int = 100000
+entries : int = 40000
 max_append : int = 100
 
 def entries_1000():

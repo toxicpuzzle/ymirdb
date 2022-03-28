@@ -1,9 +1,0 @@
-SET a 1 2 3 3 4 5 67 7 8
-SET b a 1 2 3
-SET c a 1 2 3
-SET d a 1 2 3
-SET e b c d
-LEN e
-PLUCK a 5
-LEN e
-bye

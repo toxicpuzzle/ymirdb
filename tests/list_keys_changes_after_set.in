@@ -1,7 +1,0 @@
-LIST KEYS
-SEt a 1 2 3
-SEt b 2 23 4
-LIST KEYS
-DEL a
-LIST KEYS
-bye

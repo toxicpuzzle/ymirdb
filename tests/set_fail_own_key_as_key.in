@@ -1,7 +1,0 @@
-SET cycle cycle
-SET a a
-SET b b
-SET c 1 2 3
-SET a c b a
-LIST ENTRIES
-bye

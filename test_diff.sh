@@ -11,10 +11,10 @@ for file in $FILES; do
         printf "\n"
         printf "Executing test case: ${file}%5s\n"
         printf "\n"
-        if [[ $(./ymirdb < ${file}.in | diff -w - ${file}.out) ]]; then
+        if [[ $(./ymirdb < ${file}.in | diff - ${file}.out) ]]; then
             echo "     Test case failed"
             echo " "
-            ./ymirdb < ${file}.in | diff -w - ${file}.out
+            ./ymirdb < ${file}.in | diff - ${file}.out
         else
             echo "     Test case passed"
             C=$((C + 1))

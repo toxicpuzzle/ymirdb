@@ -711,6 +711,7 @@ void entry_type(entry* e){
 	}
 }
 
+// Remove forward entries' back links to the current entry in worsst (O(n^2))
 //! Would this count as quadratic time? Ask about this, if so don't delete the back links
 void _rm_forward_links_to(entry* e){
 	// Remove each back link to e every for every forward link e has
