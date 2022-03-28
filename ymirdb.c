@@ -578,6 +578,12 @@ entry** _get_forward_links(entry* e, int* size){
 	entry** next_forwards = NULL;
 	int next_size = 0;
 
+	//! Do this to looping over forwards on entries you've already visited? or unncesssary
+	// if(e->has_visited == true){
+	// 	*size = 0;
+	// 	return forwards;
+	// }
+
 	// Base case - If the current entry has already been visited i.e. added to forwards list, don't add it again
 	e->has_visited = true;
 
@@ -617,9 +623,15 @@ entry** get_forward_links(entry* e, int* size){
 }
 
 entry** _get_backward_links(entry* e, int* size){
-	entry** backwards;
-	entry** next_backwards;
+	entry** backwards = NULL;
+	entry** next_backwards = NULL;
 	int next_size = 0;
+
+	//! Do this to looping over forwards on entries you've already visited
+	// if(e->has_visited == true){
+	// 	*size = 0;
+	// 	return backwards;
+	// }
 
 	// Base case - If the current entry has already been visited i.e. added to forwards list, don't add it again
 	e->has_visited = true;
@@ -649,6 +661,7 @@ entry** _get_backward_links(entry* e, int* size){
 	return backwards;
 }
 
+// Returns all backward links (recursive) for e, clears all cache variables.
 entry** get_backward_links(entry* e, int* size){
 	entry** backwards = _get_backward_links(e, size);
 	e->has_visited = false;
