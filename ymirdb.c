@@ -19,9 +19,7 @@
 #define MSG_NOPERM printf("not permitted\n");
 #define MSG_OK printf("ok\n");
 
-entry** get_forward_links(entry* e, int* size);
-void entry_recalcsmm(entry* e);
-void entry_free(entry* e);
+
 
 // Helper function to update is_simple status of entry
 void update_is_simple(entry* e){
@@ -466,6 +464,7 @@ entry** _entries_remove(entry** entries, size_t* entries_len, entry* rm){
 	return entries;
 }
 
+// Helper function that replaces a target in entries array with replacement
 entry** _entries_replace(entry** entries, size_t* entries_len, entry* target, entry* replacement){
 	
 	// Grab index to remove
@@ -480,6 +479,7 @@ entry** _entries_replace(entry** entries, size_t* entries_len, entry* target, en
 	return entries;
 }
 
+// Helper function that repalces target in elements array with replacement
 element* _elements_replace(element* elements, size_t* elements_len, entry* target, entry* replacement){
 	// Grab index to remove
 	int idx = 0;
@@ -503,11 +503,7 @@ void entry_set(entry* e, entry** current_state_ptr){
 		state_push(e, current_state_ptr); 
 	} else {
 
-		// Remove all backward links to current entry
-		for (int i = 0; i < existing->forward_size; i++){// TODO: Replace this with _rm_forward_link_to
-			entry* forward = existing->forward[i];
-			forward->backward = _entries_remove(forward->backward, &forward->backward_size, existing); 
-		}
+		_rm_forward_links_to(existing);
 
 		// Make all existing back entries point forward to new replacement entry
 		for (int i = 0; i < existing->backward_size; i++){
@@ -555,7 +551,7 @@ void entry_reverse(entry* e){
 	}
 }
 
-// Appends entry to the entry array (not directly to entry->next), MUST reassign to return value due to pass by value
+// Appends entry to the entry array 
 entry** _entries_append(entry** list, entry* e, int* list_size){
 	*list_size = *list_size + 1;
 	if (*list_size == 1){
@@ -632,7 +628,7 @@ entry** _get_backward_links(entry* e, int* size){
 		backwards = _entries_append(backwards, backward_link, size);	
 	
 		// DFS forward - Get array containing recursive (only if the entry is not marked as visited)
-		next_size = 0; //? next_size resetted for every iteration of the loop
+		next_size = 0; 
 		next_backwards = _get_backward_links(backward_link, &next_size);
 	
 		// Attach fowards from recursive call to end of current list		
@@ -675,7 +671,6 @@ void entry_forward(entry* e){
 		printf("nil\n");
 		return;
 	} else {
-		// e->has_visited = false;
 		for (int i = 0; i < size-1; i++){
 			printf("%s, ", forward_entries[i]->key);
 		}
@@ -792,7 +787,7 @@ void entry_unique(entry* e){
 		cursor++;
 	}
 
-	// Srhink values array to required size for new_values
+	// Shrink values array to required size for new_values
 	new_values = realloc(new_values, new_size*sizeof(element));
 	free(e->values); 
 	e->length = new_size;
