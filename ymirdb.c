@@ -22,7 +22,6 @@
 entry** get_forward_links(entry* e, int* size);
 void entry_recalcsmm(entry* e);
 void entry_free(entry* e);
-void _inspect_state();
 
 // Helper function to update is_simple status of entry
 void update_is_simple(entry* e){
@@ -262,7 +261,7 @@ bool entry_append(entry* e, char** args, size_t args_size, entry** current_state
 	return true;
 }
 
-// Reverses an array in O(n) time
+// Reverses an array
 void _reverse_array(void* array, int length, size_t size){
 	for (int i = 0; i < length/2; i++){
 		swap(array, i, length-i-1, size);
@@ -305,10 +304,13 @@ bool entry_push(entry* e, char** args, size_t args_size, entry** current_state_p
 
 // Prints out the minimum value for an entry
 void entry_min(entry* e){
+
+	// Get all forward links the current entry
 	int min = e->min;
 	int forward_size = 0;
 	entry** forwards  = get_forward_links(e, &forward_size);
 
+	// Compare e's own min with its forward link's mins
 	for (int i = 0; i < forward_size; i++){
 		if (forwards[i]->min < min){
 			min = forwards[i]->min;
@@ -325,10 +327,13 @@ void entry_min(entry* e){
 
 // Prints out the maximum value for an entry
 void entry_max(entry* e){
+
+	// Get all forward links the current entry
 	int max = e->max;
 	int forward_size = 0;
 	entry** forwards  = get_forward_links(e, &forward_size);
 	
+	// Compare e's own max with its forward link's maxes
 	for (int i = 0; i < forward_size; i++){
 		if (forwards[i]->max > max){
 			max = forwards[i]->max;
@@ -348,18 +353,20 @@ int _calculate_sum(entry* e){
 		return e->sum_forward;
 	}
 	
+	// Compute sum from e's sum and sum of its forwards
 	int sum = e->sum;
 	for (int i = 0; i < e->forward_size; i++){
 		sum += _calculate_sum(e->forward[i]);
 	}
 
+	// Cache result so visits to this entry does not result in recomputation
 	e->sum_forward = sum;
 	e->has_visited = true;
 	return sum;
 }
 
 
-
+// Prints out the sum of an entry
 void entry_sum(entry* e){
 
 	// Get e's forward links so we can clear the helper function's effects
@@ -424,7 +431,7 @@ int entry_len(entry* e){
 }
 
 // Frees an entry and all its associated arrays
-void entry_free(entry* e){	//! Changed so entry free frees the entry and its forward references -> causes memory issues elsewhere.
+void entry_free(entry* e){	
 	// Free all values pointed to by e
 	if (e->values != NULL) free(e->values);
 	if (e->forward != NULL) free(e->forward);
@@ -432,15 +439,6 @@ void entry_free(entry* e){	//! Changed so entry free frees the entry and its for
 	if (e->copy_reference != NULL) free(e->copy_reference);
 	free(e);
 }
-
-
-// Testing function to look at everything in memory
-#if TEST == 1
-#else
-	void _inspect_state(){
-		return;
-	}
-#endif
 
 // Removes entry with address rm from an array
 entry** _entries_remove(entry** entries, size_t* entries_len, entry* rm){
@@ -470,7 +468,6 @@ entry** _entries_remove(entry** entries, size_t* entries_len, entry* rm){
 
 entry** _entries_replace(entry** entries, size_t* entries_len, entry* target, entry* replacement){
 	
-
 	// Grab index to remove
 	int idx = 0;
 	for (; idx < *entries_len; idx++){
@@ -479,7 +476,6 @@ entry** _entries_replace(entry** entries, size_t* entries_len, entry* target, en
 		}
 	}
 
-	// memcpy(entries+idx, replacement, sizeof(entry*));
 	entries[idx] = replacement;
 	return entries;
 }
@@ -488,14 +484,12 @@ element* _elements_replace(element* elements, size_t* elements_len, entry* targe
 	// Grab index to remove
 	int idx = 0;
 	for (; idx < *elements_len; idx++){
-		// if (elements[idx].type == ENTRY && elements[idx].entry == target){
 		if (elements[idx].type == ENTRY && strcmp(elements[idx].entry->key, target->key) == 0){
 			break;
 		}
 	}
-	// printf("Target: %p, Replacement: %p\n", elements[idx].entry, replacement);
+
 	elements[idx].entry = replacement;
-	// printf("Target: %p, Replacement: %p\n", elements[idx].entry, replacement);
 	return elements;
 }
 
@@ -573,31 +567,27 @@ entry** _entries_append(entry** list, entry* e, int* list_size){
 	return list;
 }
 
+// Helper function: Visits all forward links only once to get all forward links in list
 entry** _get_forward_links(entry* e, int* size){
 	entry** forwards = NULL;
 	entry** next_forwards = NULL;
 	int next_size = 0;
 
-	//! Do this to looping over forwards on entries you've already visited? or unncesssary
-	// if(e->has_visited == true){
-	// 	*size = 0;
-	// 	return forwards;
-	// }
-
-	// Base case - If the current entry has already been visited i.e. added to forwards list, don't add it again
+	// If the current entry has been visited/added to list, don't add it again
 	e->has_visited = true;
 
 	// Add all forwards list 
 	for (int i = 0; i < e->forward_size; i++){
 		entry* forward_link = e->forward[i];
 		
+		// If the current entry has been visited/added to list, don't add it again
 		if (forward_link->has_visited == true) continue;	
 
 		// Resize forwards and add link to end of list
 		forwards = _entries_append(forwards, forward_link, size);	
 	
 		// DFS forward - Get array containing recursive (only if the entry is not marked as visited)
-		next_size = 0; //? next_size resetted for every iteration of the loop
+		next_size = 0; 
 		next_forwards = _get_forward_links(forward_link, &next_size);
 	
 		// Attach fowards from recursive call to end of current list		
@@ -622,24 +612,20 @@ entry** get_forward_links(entry* e, int* size){
 	return forwards;
 }
 
+// Helper function: Visits all back links only once to get all back links in list
 entry** _get_backward_links(entry* e, int* size){
 	entry** backwards = NULL;
 	entry** next_backwards = NULL;
 	int next_size = 0;
 
-	//! Do this to looping over forwards on entries you've already visited
-	// if(e->has_visited == true){
-	// 	*size = 0;
-	// 	return backwards;
-	// }
-
-	// Base case - If the current entry has already been visited i.e. added to forwards list, don't add it again
+	// If the current entry has been visited/added to list, don't add it again
 	e->has_visited = true;
 
 	// Add all forwards list 
 	for (int i = 0; i < e->backward_size; i++){
 		entry* backward_link = e->backward[i];
 		
+		// If the current entry has been visited/added to list, don't add it again
 		if (backward_link->has_visited == true) continue;	
 
 		// Resize forwards and add link to end of list
@@ -679,6 +665,7 @@ int entry_keycomp(const void* e1, const void* e2){
 	return result;
 }
 
+// Prints out all forward entries that e has (recursive search)
 void entry_forward(entry* e){
 	int size = 0;
 	entry** forward_entries = get_forward_links(e, &size);	
@@ -697,19 +684,21 @@ void entry_forward(entry* e){
 	} 	
 }
 
-
+// Prints out all backward entries that e has (recursive search)
 void entry_backward(entry* e){
+
+	// Retrieve backward all of e's backward entries using helper function
 	int size = 0;
 	entry** backward_entries = get_backward_links(e, &size);	
-	qsort(backward_entries, size, sizeof(entry*), entry_keycomp);
-	// Loop through all entries and reset their visited value;
-
+	
 	// Sort to lexicographical order;
+	qsort(backward_entries, size, sizeof(entry*), entry_keycomp);
+
+	// Print output
 	if (size == 0){
 		printf("nil\n");
 		return;
 	} else {
-		// e->has_visited = false;
 		for (int i = 0; i < size-1; i++){
 			printf("%s, ", backward_entries[i]->key);
 		}
@@ -718,6 +707,7 @@ void entry_backward(entry* e){
 	}
 }
 
+// Prints out whether an entry is simple or general
 void entry_type(entry* e){
 	if (e->is_simple){
 		printf("simple\n");
@@ -735,12 +725,13 @@ void _rm_forward_links_to(entry* e){
 	}
 }
 
+// Returns true if an entry is allowed to be deleted
 bool entry_candel(entry* e){
 	return e->backward_size == 0;
 }
 
+// Deletes an entry from the current state (not snapshots)
 void entry_delete(entry* e, entry** current_state_ptr){
-	_inspect_state();
 
 	if (!entry_candel(e)){
 		return;
@@ -764,10 +755,10 @@ void entry_delete(entry* e, entry** current_state_ptr){
 		}	
 
 		entry_free(e);
-		_inspect_state();
 	}
 }
 
+// Elements are the same if their values are the same (only for simple entries)
 int element_compare(const void* e1, const void* e2){
 	element* element_1 = (element*) e1;
 	element* element_2 = (element*) e2;
@@ -780,13 +771,14 @@ void entry_sort(entry* e){
 	qsort(e->values, e->length, sizeof(element), &element_compare); //? Seems like we don't need to add the & sign next to function to make it a function pointer?
 }
 
+// Create a new array and iterate through array adding adjacently unique entries
 void entry_unique(entry* e){
 	if (e->is_simple == false){
 		printf("Cannot make unique an entry that is not simple!\n");
 	}
 
 	element* new_values = calloc(e->length, sizeof(element));
-	element* last_word = NULL; //! Set it to null or you'll get stack underflow error (last_word == NULl) does not work
+	element* last_word = NULL; 
 	element* cursor = e->values;
 
 	int new_size = 0;
@@ -799,12 +791,15 @@ void entry_unique(entry* e){
 		last_word = cursor;
 		cursor++;
 	}
+
+	// Srhink values array to required size for new_values
 	new_values = realloc(new_values, new_size*sizeof(element));
-	free(e->values); //TODO: Effectively free these values
+	free(e->values); 
 	e->length = new_size;
 	e->values = new_values;
 }
 
+// Print out a value at a specified index within an entry
 void entry_pick(entry* e, int index){	
 	
 	if (index < 0 || index >= e->length){
@@ -826,10 +821,12 @@ void entry_recalcsmm(entry* e){
 	int min = INT_MAX;
 	int max = INT_MIN;
 	int sum = 0;
+
 	// Search through entries to find new min new max
 	for (int i = 0; i < e->length; i++){
 		element* current_element = e->values+i;
 		if (current_element->type != ENTRY){
+
 			// Update sum, min, max
 			if (current_element->value < min){
 				min = current_element->value;
@@ -846,8 +843,7 @@ void entry_recalcsmm(entry* e){
 
 }
 
-
-
+// Removes value at index and updates back/forward links if ENTRY is removed
 void entry_pluck(entry* e, int index){
 
 	if (index < 0 || index >= e->length){
@@ -866,8 +862,9 @@ void entry_pluck(entry* e, int index){
 		e->forward = _entries_remove(e->forward, &e->forward_size, elem_to_remove->entry); // remove forwad link
 	}
 	
+	// Shrink the values array and minimise memory use
 	e->length--;
-	memmove(elem_to_remove, elem_to_remove+1, (e->length-index)*sizeof(element)); //! Address sanitizer issue -> use memmove instead?
+	memmove(elem_to_remove, elem_to_remove+1, (e->length-index)*sizeof(element)); 
 	e->values = realloc(e->values, e->length*sizeof(element));
 	if (type == INTEGER){
 		entry_recalcsmm(e);
@@ -876,7 +873,10 @@ void entry_pluck(entry* e, int index){
 	update_is_simple(e);
 }
 
+
+// Pluck the first index of an entry for pop command if e is non-empty
 void entry_pop(entry* e){
+
 	// You cannot have an index out of range error for pop -> always check for length first
 	if (e->length == 0){
 		printf("nil\n");
@@ -885,6 +885,7 @@ void entry_pop(entry* e){
 	entry_pluck(e, 0);
 }
 
+// List all keys for the current state by iterating through all keys
 void list_keys(entry** current_state_ptr){
 	entry* cursor = *current_state_ptr;
 
@@ -899,6 +900,7 @@ void list_keys(entry** current_state_ptr){
 	}
 }
 
+// List all keys for current state by iterating all entries and their keys
 void list_entries(entry** current_state_ptr){
 	entry* cursor = *current_state_ptr;
 
@@ -909,12 +911,13 @@ void list_entries(entry** current_state_ptr){
 
 	while (cursor != NULL){
 		printf("%s ", cursor->key);
-		entry_tostring(cursor); //? Should this display the links as a letter or the elements in that next link?
+		entry_tostring(cursor); 
 		cursor = cursor->next;
 	}
 
 }
 
+// List all snapshots in the current data base if there are snapshots
 void list_snapshots(snapshot** latest_snap_ptr){
 	snapshot* cursor = *latest_snap_ptr;
 
@@ -929,6 +932,7 @@ void list_snapshots(snapshot** latest_snap_ptr){
 	}
 }
 
+// Gets a snapshot by its id in the current database
 snapshot* snapshot_get(int id, snapshot** latest_snap_ptr){
 	snapshot* cursor = *latest_snap_ptr;
 	while (cursor != NULL){
@@ -982,6 +986,7 @@ entry* _entry_copy(entry* e){
 		
 	}
 
+	// Attach forward, values, other arrays to copy, and create copy_reference
 	copy->values = copy_values;
 	copy->forward = forward_copies;
 	copy->forward_size = forward_copies_size;	
@@ -1004,7 +1009,7 @@ void snapshot_append(snapshot* snap, snapshot** latest_snap_ptr){
 	}
 }
 
-//?! Are forward and backward entries of a certain entry always going to maintain the same index? probably not? e.g. triangle
+// Create copy of entries array with forward and backward links
 snapshot* snapshot_create(entry* entries, int id){
 	entry* cursor = entries;
 	entry* entries_copy = NULL;
@@ -1013,7 +1018,7 @@ snapshot* snapshot_create(entry* entries, int id){
 	while (cursor != NULL){
 		entry* copy = cursor->copy_reference;
 		if (copy == NULL){
-			copy = _entry_copy(cursor); //! might have corrupted top size with poor management of entry_copy() -> old
+			copy = _entry_copy(cursor);
 		}
 
 		// Link entry to previous entry in chain
@@ -1053,27 +1058,18 @@ void snapshot_free(entry* entries){
 	entry* old = NULL;
 	while (cursor != NULL){
 		old = cursor;
-		cursor = cursor->next; //! Make sure cursor points a allocated block of memory 
+		cursor = cursor->next; 
 		entry_free(old);
 	}
 }
 
-
-
-//! Bug: If you delete a snapsot when there is only one snapshots, subsequent snapshots added will not be found.
-//? error handling done by the main function
+// Drops a snapshot and updates the ptr to the latest_snapshot
 void snapshot_drop(snapshot* snap, snapshot** latest_snap_ptr){
 	snapshot* before = snap->prev;
 	snapshot* after = snap->next;
 
 	// Free up all the entries in the snapshot
-	#if (TEST == 1)
-		printf("Trying to free entries in the snapshot to be dropped\n");
-	#endif
-	snapshot_free(snap->entries); //! Segfault line
-	#if (TEST == 1)
-		printf("succesfully freed entries in the snapshot to be dropped\n");
-	#endif
+	snapshot_free(snap->entries);
 
 	// Get previous snapshot to point to next snapshot and vice versa
 	if (after != NULL){
@@ -1089,9 +1085,9 @@ void snapshot_drop(snapshot* snap, snapshot** latest_snap_ptr){
 	} 
 
 	free(snap);
-
 }
 
+// Frees memory from all snapshots and the current state
 void program_clear(entry** current_state_ptr, snapshot** latest_snap_ptr){
 	snapshot* cursor = *latest_snap_ptr; 
 	snapshot* old;
@@ -1105,6 +1101,8 @@ void program_clear(entry** current_state_ptr, snapshot** latest_snap_ptr){
 	}
 }
 
+
+// Frees current state and makes a copy of the specified snap into current_state
 void snapshot_rollback(snapshot* snap, entry** current_state_ptr, snapshot** latest_snap_ptr){
 	snapshot* cursor = *latest_snap_ptr; 
 	snapshot* old;
@@ -1122,23 +1120,24 @@ void snapshot_rollback(snapshot* snap, entry** current_state_ptr, snapshot** lat
 	}
 
 	// Create copy of snapshot we want to rollback to
-	snapshot* snap_copy = snapshot_create(cursor->entries, 0); //! snapshot id does not matter here as we just want the entries
+	snapshot* snap_copy = snapshot_create(cursor->entries, 0); 
 	*current_state_ptr = snap_copy->entries;
 	free(snap_copy);
-	// Clear the current state (//TODO: Implement deep delete function alongside deep copy function)
 }
 
-//! When you checkout to an entry and then drop that entry whilst you're in the snapshot -> you get junk values when you list entries.
+
+// Create a copy of snap and set the current state that snap
 void snapshot_checkout(snapshot* snap, entry** current_state_ptr){
-	// Free current state
+	// Free current state before pointing it to snap copy
 	snapshot_free(*current_state_ptr);
 	snapshot* snap_copy = snapshot_create(snap->entries, 0);
 	*current_state_ptr = snap_copy->entries;
 	free(snap_copy); //? don't need id for copy of snapshot
 }
 
+// Copy snapshot based on current lifetime id and current state.
 snapshot* snapshot_save(int id, entry** current_state_ptr, snapshot** latest_snap_ptr){
-	snapshot* new_snapshot = snapshot_create(*current_state_ptr, id);  //! Snapshots are not freed?
+	snapshot* new_snapshot = snapshot_create(*current_state_ptr, id); 
 	snapshot_append(new_snapshot, latest_snap_ptr);
 	return new_snapshot;
 }
@@ -1148,7 +1147,8 @@ bool can_purge(char* key, entry** current_state_ptr, snapshot** latest_snap_ptr)
 	entry* original_state = *current_state_ptr;
 	entry* to_delete;
 	snapshot* snap = *latest_snap_ptr;
-
+	
+	// Check key can be deleted in all snapshot entries
 	while (snap != NULL){
 		*current_state_ptr = snap->entries;
 		to_delete = entry_get(key, current_state_ptr);
@@ -1156,10 +1156,11 @@ bool can_purge(char* key, entry** current_state_ptr, snapshot** latest_snap_ptr)
 			*current_state_ptr = original_state;
 			return false;
 		}
-		snap->entries = *current_state_ptr; //? Make snapshot possess correct starting entries upon deletion
+		snap->entries = *current_state_ptr; 
 		snap = snap->prev;
 	}
 
+	// Check key can be deleted in teh current state
 	*current_state_ptr = original_state;
 	to_delete = entry_get(key, current_state_ptr);
 	if (to_delete != NULL && !entry_candel(to_delete)){
@@ -1169,6 +1170,7 @@ bool can_purge(char* key, entry** current_state_ptr, snapshot** latest_snap_ptr)
 	return true;
 }
 
+// Remove entry with matching key from current_state and all snapshots if allowed
 void purge(char* key, entry** current_state_ptr, snapshot** latest_snap_ptr){
 
 	if (!can_purge(key, current_state_ptr, latest_snap_ptr)){
@@ -1185,13 +1187,11 @@ void purge(char* key, entry** current_state_ptr, snapshot** latest_snap_ptr){
 		*current_state_ptr = snap->entries;
 		to_delete = entry_get(key, current_state_ptr);
 
-		#if TEST == 1
-			printf("deleting entries in snapshot %d\n", snap->id);
-		#endif 
 		if (to_delete != NULL){
 			entry_delete(to_delete, current_state_ptr);
 		}
-		snap->entries = *current_state_ptr; //? Make snapshot possess correct starting entries upon deletion
+
+		snap->entries = *current_state_ptr; 
 		snap = snap->prev;
 	}
 
@@ -1205,6 +1205,7 @@ void purge(char* key, entry** current_state_ptr, snapshot** latest_snap_ptr){
 
 }
 
+// Main function handles command parsing.
 int main(void) {
 
 	char line[MAX_LINE];	
