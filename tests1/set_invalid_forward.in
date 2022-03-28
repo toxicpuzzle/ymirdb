@@ -1,0 +1,5 @@
+SET a 1 2 b
+SET b 1 2 c a
+SET a 12df a b c
+LIST ENTRIES
+bye

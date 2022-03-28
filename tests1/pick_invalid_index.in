@@ -1,0 +1,11 @@
+SET a 1 2 3
+SET b 12 3
+APPEND a b
+PUSH a b
+LIST ENTRIES
+PICK a 0
+PICK a 1000
+PICK a 6
+PICK a 5
+PICK a 5
+bye

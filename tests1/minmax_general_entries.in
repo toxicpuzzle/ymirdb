@@ -1,0 +1,12 @@
+SET a 1 2 3 4 5 -1000
+SET b a 20 -10 2
+MIN a
+MAX a
+MIN b
+MAX b
+PUSH a -10001
+MIN a
+MAX a
+MIN b
+MAX b
+bye
