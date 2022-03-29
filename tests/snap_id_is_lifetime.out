@@ -1,0 +1,72 @@
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> saved as snapshot 1
+
+> b
+
+> saved as snapshot 2
+
+> -1
+
+> saved as snapshot 3
+
+> 20
+
+> saved as snapshot 4
+
+> ok
+
+> ok
+
+> ok
+
+> 2
+
+> no such snapshot
+
+> ok
+
+> ok
+
+> d1d [34 10 2]
+c [10 20 30]
+b [c -1 0 1]
+a [c 1 2 3]
+
+> saved as snapshot 5
+
+> 5
+2
+
+> ok
+
+> ok
+
+> b
+
+> no such key
+
+> c
+
+> nil
+
+> d1d [34 10 2]
+c [10 20 30]
+b [c -1 0 1]
+
+> saved as snapshot 6
+
+> 6
+2
+
+> bye

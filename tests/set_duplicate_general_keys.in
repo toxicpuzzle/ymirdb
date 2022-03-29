@@ -1,0 +1,6 @@
+SET a 1 2
+SET b a a 2 2
+LEN b
+LEN a
+LIST ENTRIES
+bye

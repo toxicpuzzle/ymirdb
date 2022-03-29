@@ -1,0 +1,10 @@
+SET a 1 2 3
+SET b 1 2
+TYPE a
+PUSH a b
+TYPE a
+PLUCK a 1
+TYPE a
+FORWARD a
+LIST ENTRIES
+bye

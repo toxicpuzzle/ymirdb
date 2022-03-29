@@ -1,0 +1,14 @@
+SET a 1 2 3
+SET b 1 2 3
+SET c 1 2 3
+SET d 10 20 30
+PUSH a b
+PUSH b c d
+LIST ENTRIES
+DEL b
+DEL a 
+DEL b
+DEL c
+DEL d
+LIST ENTRIES
+bye 
