@@ -1006,8 +1006,23 @@ void snapshot_append(snapshot* snap, snapshot** latest_snap_ptr){
 
 // Creates copy without 
 entry* entry_copy_local_values(entry* e){
-	entry* copy = malloc(sizeof(entry));
+	entry* copy = calloc(1, sizeof(entry));	
 	memcpy(copy, e, sizeof(entry));
+	
+	// Copy old backward array
+	entry** old_backward = copy->backward;
+	copy->backward = calloc(copy->backward_size, sizeof(entry*));
+	memcpy(copy->backward, old_backward, copy->backward_size*sizeof(entry*));
+
+	// Copy old forward array
+	entry** old_forward = copy->forward;
+	copy->forward = calloc(copy->forward_size, sizeof(entry*));
+	memcpy(copy->forward, old_forward, copy->forward_size*sizeof(entry*));
+
+	element* old_values = copy->values;
+	copy->values = calloc(copy->length, sizeof(element));
+	memcpy(copy->values, old_values, copy->length*sizeof(element));
+
 	return copy;
 }
 
