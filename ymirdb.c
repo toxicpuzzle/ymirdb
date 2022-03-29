@@ -711,7 +711,8 @@ void entry_type(entry* e){
 	}
 }
 
-// Remove forward entries' back links to the current entry in worst (O(n^2))
+// Remove forward entries' back links to the current entry in worsst (O(n^2))
+//! Would this count as quadratic time? Ask about this, if so don't delete the back links
 void _rm_forward_links_to(entry* e){
 	// Remove each back link to e every for every forward link e has
 	for (int i = 0; i < e->forward_size; i++){
@@ -940,56 +941,56 @@ snapshot* snapshot_get(int id, snapshot** latest_snap_ptr){
 }
 
 // Creates a copy of the entry inside e->copy_reference that links to all forward entries.
-// entry* _entry_copy(entry* e){
+entry* _entry_copy(entry* e){
 
-// 	// Return entry's copy if it has already been copied'
-// 	if (e->copy_reference != NULL){
-// 		return e->copy_reference;
-// 	}
+	// Return entry's copy if it has already been copied'
+	if (e->copy_reference != NULL){
+		return e->copy_reference;
+	}
 
-// 	// Store unique version of the values for copy
-// 	entry* copy = calloc(1, sizeof(entry));
-// 	element* copy_values = calloc(e->length, sizeof(element));
+	// Store unique version of the values for copy
+	entry* copy = calloc(1, sizeof(entry));
+	element* copy_values = calloc(e->length, sizeof(element));
 
-// 	// Store copy of e's forward entries (new forward array)
-// 	int forward_copies_size = 0;
-// 	entry** forward_copies = NULL;
+	// Store copy of e's forward entries (new forward array)
+	int forward_copies_size = 0;
+	entry** forward_copies = NULL;
 
-// 	// Copy memory from e for the entry to copy, but clear forward/backward arrays for copies
-// 	memcpy(copy, e, sizeof(entry));
-// 	copy->values = NULL;
-// 	copy->backward_size = 0;
-// 	copy->forward_size = 0;
-// 	copy->backward = NULL;
-// 	copy->forward = NULL;
+	// Copy memory from e for the entry to copy, but clear forward/backward arrays for copies
+	memcpy(copy, e, sizeof(entry));
+	copy->values = NULL;
+	copy->backward_size = 0;
+	copy->forward_size = 0;
+	copy->backward = NULL;
+	copy->forward = NULL;
 	
-// 	// Iterate through all values and make links to copies of forward entries 
-// 	for (int i = 0; i < e->length; i++){
-// 		element* elem = e->values + i;
-// 		element* elem_copy = copy_values + i;
-// 		memcpy(elem_copy, elem, sizeof(element));
-// 		if (elem->type == ENTRY){
-// 			entry* forward_copy = _entry_copy(elem->entry); 
+	// Iterate through all values and make links to copies of forward entries 
+	for (int i = 0; i < e->length; i++){
+		element* elem = e->values + i;
+		element* elem_copy = copy_values + i;
+		memcpy(elem_copy, elem, sizeof(element)); //? Copy values over by default, deal with entry case as exception
+		if (elem->type == ENTRY){
+			entry* forward_copy = _entry_copy(elem->entry); // TODO: Fix returning of copy reference, nvm it is working. just didn't read right?
 			
-// 			// Connect e to copy of forward link in both ways
-// 			// TODO: Check if we made a genuine copy of the forward and backward arrays
-// 			forward_copy->backward = _entries_append(forward_copy->backward, copy, (int*)&forward_copy->backward_size); //! 2 hours spent on figuring out that you should attach copy to back of new entry not old e (used memory address debuggin method)
-// 			forward_copies = _entries_append(forward_copies, forward_copy, (int*)&forward_copies_size);
-// 			elem_copy->type = ENTRY;
-// 			elem_copy->entry = forward_copy; 
-// 		} 
+			// Connect e to copy of forward link in both ways
+			// TODO: Check if we made a genuine copy of the forward and backward arrays
+			forward_copy->backward = _entries_append(forward_copy->backward, copy, (int*)&forward_copy->backward_size); //! 2 hours spent on figuring out that you should attach copy to back of new entry not old e (used memory address debuggin method)
+			forward_copies = _entries_append(forward_copies, forward_copy, (int*)&forward_copies_size);
+			elem_copy->type = ENTRY;
+			elem_copy->entry = forward_copy; 
+		} 
 		
-// 	}
+	}
 
-// 	// Attach forward, values, other arrays to copy, and create copy_reference
-// 	copy->values = copy_values;
-// 	copy->forward = forward_copies;
-// 	copy->forward_size = forward_copies_size;	
-// 	e->copy_reference = copy;
+	// Attach forward, values, other arrays to copy, and create copy_reference
+	copy->values = copy_values;
+	copy->forward = forward_copies;
+	copy->forward_size = forward_copies_size;	
+	e->copy_reference = copy;
 
 
-// 	return copy;
-// }
+	return copy;
+}
 
 
 //? Could create pointer to last element and just append to that 
@@ -1004,12 +1005,12 @@ void snapshot_append(snapshot* snap, snapshot** latest_snap_ptr){
 	}
 }
 
-// Creates copy without 
-entry* entry_copy_local_values(entry* e){
-	entry* copy = malloc(sizeof(entry));
-	memcpy(copy, e, sizeof(entry));
-	return copy;
-}
+// // Creates copy without 
+// entry* entry_copy_local_values(entry* e){
+// 	entry* copy = malloc(sizeof(entry));
+// 	memcpy(copy, e, sizeof(entry));
+// 	return copy;
+// }
 
 // Create copy of entries array with forward and backward links
 snapshot* snapshot_create(entry* entries, int id){
@@ -1017,11 +1018,12 @@ snapshot* snapshot_create(entry* entries, int id){
 	entry* entries_copy = NULL;
 	entry* previous = NULL;
 
-	// First pass to create copy of values
+	// Loop through every entry in current snapshot and create copy
 	while (cursor != NULL){
-		// Make copy of local values
-		entry* copy = entry_copy_local_values(cursor);
-		cursor->copy_reference = copy;
+		entry* copy = cursor->copy_reference;
+		if (copy == NULL){
+			copy = _entry_copy(cursor);
+		}
 
 		// Link entry to previous entry in chain
 		if (previous != NULL){
@@ -1037,56 +1039,6 @@ snapshot* snapshot_create(entry* entries, int id){
 		previous = copy;
 		cursor = cursor->next;
 	}
-
-	// Second pass to create forward and backward links + values array
-	cursor = entries_copy;
-	while (cursor != NULL){
-		
-		// Copy values array
-		for (int i = 0; i < cursor->length; i++){
-			element value = cursor->values[i];
-			if (value.type == ENTRY){
-				cursor->values[i].entry = value.entry->copy_reference;
-			}
-		}
-
-		// Copy forwards array
-		for (int i = 0; i < cursor->forward_size; i++){
-			entry* fwd = cursor->forward[i];
-			cursor->forward[i] = fwd->copy_reference;
-		}
-
-		// Copy backwards array
-		for (int i = 0; i < cursor->backward_size; i++){
-			entry* bwd = cursor->backward[i];
-			cursor->backward[i] = bwd->copy_reference;
-		}
-
-		cursor = cursor->next;
-	}
-	
-
-	// Loop through every entry in current snapshot and create copy
-	// while (cursor != NULL){
-	// 	entry* copy = cursor->copy_reference;
-	// 	if (copy == NULL){
-	// 		copy = _entry_copy(cursor);
-	// 	}
-
-	// 	// Link entry to previous entry in chain
-	// 	if (previous != NULL){
-	// 		previous->next = copy;
-	// 		copy->prev = previous;
-	// 	} 
-	
-	// 	// Ensure entries copy points to first copied entry;
-	// 	if (entries_copy == NULL){
-	// 		entries_copy = copy;
-	// 	}
-
-	// 	previous = copy;
-	// 	cursor = cursor->next;
-	// }
 
 	// Set all elements' copy_reference to null after creating snapshot
 	cursor = entries;
