@@ -711,8 +711,7 @@ void entry_type(entry* e){
 	}
 }
 
-// Remove forward entries' back links to the current entry in worsst (O(n^2))
-//! Would this count as quadratic time? Ask about this, if so don't delete the back links
+// Remove forward entries' back links to the current entry in worst (O(n^2))
 void _rm_forward_links_to(entry* e){
 	// Remove each back link to e every for every forward link e has
 	for (int i = 0; i < e->forward_size; i++){
@@ -968,9 +967,9 @@ entry* _entry_copy(entry* e){
 	for (int i = 0; i < e->length; i++){
 		element* elem = e->values + i;
 		element* elem_copy = copy_values + i;
-		memcpy(elem_copy, elem, sizeof(element)); //? Copy values over by default, deal with entry case as exception
+		memcpy(elem_copy, elem, sizeof(element));
 		if (elem->type == ENTRY){
-			entry* forward_copy = _entry_copy(elem->entry); // TODO: Fix returning of copy reference, nvm it is working. just didn't read right?
+			entry* forward_copy = _entry_copy(elem->entry); 
 			
 			// Connect e to copy of forward link in both ways
 			// TODO: Check if we made a genuine copy of the forward and backward arrays
@@ -1011,6 +1010,7 @@ snapshot* snapshot_create(entry* entries, int id){
 	entry* entries_copy = NULL;
 	entry* previous = NULL;
 
+	// Loop through every entry in current snapshot and create copy
 	while (cursor != NULL){
 		entry* copy = cursor->copy_reference;
 		if (copy == NULL){
