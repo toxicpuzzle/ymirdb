@@ -967,6 +967,7 @@ entry* entry_copy_local_values(entry* e){
 	copy->forward = calloc(copy->forward_size, sizeof(entry*));
 	memcpy(copy->forward, old_forward, copy->forward_size*sizeof(entry*));
 
+	// Copy old values array
 	element* old_values = copy->values;
 	copy->values = calloc(copy->length, sizeof(element));
 	memcpy(copy->values, old_values, copy->length*sizeof(element));
