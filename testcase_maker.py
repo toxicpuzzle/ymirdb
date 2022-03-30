@@ -6,6 +6,7 @@ import sys
 entries : int = 40000
 max_append : int = 100
 
+# Create 1000 entires testcase (all entries are linked to each other)
 def entries_1000():
     filename = sys.argv[1];
     print(filename);
