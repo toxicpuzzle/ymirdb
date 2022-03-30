@@ -12,8 +12,6 @@
 #include <ctype.h>
 #include <limits.h>
 #include "ymirdb.h"
-#define TEST 0
-#define PRINT_COMMAND 0
 #define MSG_NOKEY printf("no such key\n");
 #define MSG_NOSNAP printf("no such snapshot\n");
 #define MSG_NOPERM printf("not permitted\n");
@@ -479,7 +477,7 @@ entry* replacement){
 	return entries;
 }
 
-// Helper function that repalces target in elements array with replacement
+// Helper function that replaces target in elements array with replacement
 element* _elements_replace(element* elements, size_t* elements_len, 
 entry* target, entry* replacement){
 	// Grab index to remove
@@ -724,7 +722,7 @@ void _rm_forward_links_to(entry* e){
 	for (int i = 0; i < e->forward_size; i++){
 		entry* forward_link = e->forward[i];
 		forward_link->backward = _entries_remove(forward_link->backward, 
-		&forward_link->backward_size, e);
+										&forward_link->backward_size, e);
 	}
 }
 
@@ -1236,11 +1234,6 @@ int main(void) {
 			command_bye();
 			return 0;
 		}
-
-		// Process multiple arguments to the command line
-		# if (PRINT_COMMAND == 1)
-			printf("%s", line);
-		#endif
 
 		char* word = strtok(line, " \n\r"); 
 		char** args = calloc(MAX_LINE, sizeof(char*));
