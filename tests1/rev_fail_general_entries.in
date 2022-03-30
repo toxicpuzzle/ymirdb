@@ -1,6 +1,0 @@
-SET a 1 2 3 4 5 
-SET b 1 2 3
-PUSH b a
-REV b
-LIST ENTRIES
-bye

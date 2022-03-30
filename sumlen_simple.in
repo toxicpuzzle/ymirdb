@@ -1,7 +1,0 @@
-SET a 999 -1 2 -999 10 1
-SET b 11101111 111 2 0 1
-SUM a 
-SUM b
-LEN a 
-LEN b
-bye
