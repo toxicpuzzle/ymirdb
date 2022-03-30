@@ -1,0 +1,75 @@
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> b, c, d, e, f, g
+
+> a, b, c, d
+
+> g [e f 101]
+f [23]
+e [1 2 f]
+d [1 0 2 g e]
+c [g d 1 22 16]
+b [2 56 78 g c]
+a [g b 99 100 101]
+
+> not permitted
+
+> saved as snapshot 1
+
+> ok
+
+> saved as snapshot 2
+
+> ok
+
+> saved as snapshot 3
+
+> ok
+
+> not permitted
+
+> ok
+
+> not permitted
+
+> ok
+
+> 1
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> g [e f 101]
+f [23]
+e [1 2 f]
+
+> bye

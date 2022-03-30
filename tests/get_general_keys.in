@@ -1,0 +1,6 @@
+SET bro 0 0 0 1 2
+SET cool 1 0 0 0 2
+PUSH cool bro
+GET bro
+GET cool
+bye
