@@ -709,8 +709,7 @@ void entry_type(entry* e){
 	}
 }
 
-// Remove forward entries' back links to the current entry in worsst (O(n^2))
-//! Would this count as quadratic time? Ask about this, if so don't delete the back links
+// Remove forward entries' back links to the current entry in worst (O(n^2))
 void _rm_forward_links_to(entry* e){
 	// Remove each back link to e every for every forward link e has
 	for (int i = 0; i < e->forward_size; i++){
@@ -938,6 +937,7 @@ snapshot* snapshot_get(int id, snapshot** latest_snap_ptr){
 	return NULL;
 }
 
+
 //? Could create pointer to last element and just append to that 
 // Sets the correct next and prev pointers for the snapshot to be appended.
 void snapshot_append(snapshot* snap, snapshot** latest_snap_ptr){
@@ -979,12 +979,11 @@ snapshot* snapshot_create(entry* entries, int id){
 	entry* entries_copy = NULL;
 	entry* previous = NULL;
 
-	// Loop through every entry in current snapshot and create copy
+	// First pass to create copy of values
 	while (cursor != NULL){
-		entry* copy = cursor->copy_reference;
-		if (copy == NULL){
-			copy = _entry_copy(cursor);
-		}
+		// Make copy of local values
+		entry* copy = entry_copy_local_values(cursor);
+		cursor->copy_reference = copy;
 
 		// Link entry to previous entry in chain
 		if (previous != NULL){
