@@ -19,8 +19,6 @@
 #define MSG_NOPERM printf("not permitted\n");
 #define MSG_OK printf("ok\n");
 
-
-
 // Helper function to update is_simple status of entry
 void update_is_simple(entry* e){
 	if (e->forward_size > 0){
