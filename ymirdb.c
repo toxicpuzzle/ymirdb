@@ -132,7 +132,7 @@ element* elements_create(char** args, size_t args_size, entry** current_state_pt
 
 // Returns if a key is a valid key that is alphabetical and of valid length
 bool key_isvalid(char* key){
-	if (!isalpha(*key) || strlen(key) > 15) return false;
+	if (!isalpha(*key) || strlen(key) >= MAX_KEY) return false;
 	return true;
 }
 
@@ -554,7 +554,7 @@ void entry_reverse(entry* e){
 	}
 }
 
-// Appends entry to the entry array 
+// Appends entry to the entry array called list
 entry** _entries_append(entry** list, entry* e, int* list_size){
 	*list_size = *list_size + 1;
 	if (*list_size == 1){
@@ -1145,12 +1145,6 @@ snapshot** latest_snap_ptr){
 	return new_snapshot;
 }
 
-void function(char* long_word_here, char* another_long_word, 
-entry* an_important_argument){
-
-}
-
-
 // Returns false if a key with back entries is found in snapshots or current state
 bool can_purge(char* key, entry** current_state_ptr, 
 snapshot** latest_snap_ptr){
@@ -1291,7 +1285,6 @@ int main(void) {
 				entry_delete(e, &current_state);
 				MSG_OK
 			}
-			// fwrapper_entry(e, &entry_delete);
 		} else if (strcasecmp(command_type, "MIN") == 0){
 			entry* e = entry_get(args[1], &current_state);
 			if (e == NULL) {
