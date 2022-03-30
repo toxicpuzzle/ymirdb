@@ -19,8 +19,6 @@
 #define MSG_NOPERM printf("not permitted\n");
 #define MSG_OK printf("ok\n");
 
-
-
 // Helper function to update is_simple status of entry
 void update_is_simple(entry* e){
 	if (e->forward_size > 0){
@@ -940,59 +938,6 @@ snapshot* snapshot_get(int id, snapshot** latest_snap_ptr){
 	return NULL;
 }
 
-// Creates a copy of the entry inside e->copy_reference that links to all forward entries.
-entry* _entry_copy(entry* e){
-
-	// Return entry's copy if it has already been copied'
-	if (e->copy_reference != NULL){
-		return e->copy_reference;
-	}
-
-	// Store unique version of the values for copy
-	entry* copy = calloc(1, sizeof(entry));
-	element* copy_values = calloc(e->length, sizeof(element));
-
-	// Store copy of e's forward entries (new forward array)
-	int forward_copies_size = 0;
-	entry** forward_copies = NULL;
-
-	// Copy memory from e for the entry to copy, but clear forward/backward arrays for copies
-	memcpy(copy, e, sizeof(entry));
-	copy->values = NULL;
-	copy->backward_size = 0;
-	copy->forward_size = 0;
-	copy->backward = NULL;
-	copy->forward = NULL;
-	
-	// Iterate through all values and make links to copies of forward entries 
-	for (int i = 0; i < e->length; i++){
-		element* elem = e->values + i;
-		element* elem_copy = copy_values + i;
-		memcpy(elem_copy, elem, sizeof(element)); //? Copy values over by default, deal with entry case as exception
-		if (elem->type == ENTRY){
-			entry* forward_copy = _entry_copy(elem->entry); // TODO: Fix returning of copy reference, nvm it is working. just didn't read right?
-			
-			// Connect e to copy of forward link in both ways
-			// TODO: Check if we made a genuine copy of the forward and backward arrays
-			forward_copy->backward = _entries_append(forward_copy->backward, copy, (int*)&forward_copy->backward_size); //! 2 hours spent on figuring out that you should attach copy to back of new entry not old e (used memory address debuggin method)
-			forward_copies = _entries_append(forward_copies, forward_copy, (int*)&forward_copies_size);
-			elem_copy->type = ENTRY;
-			elem_copy->entry = forward_copy; 
-		} 
-		
-	}
-
-	// Attach forward, values, other arrays to copy, and create copy_reference
-	copy->values = copy_values;
-	copy->forward = forward_copies;
-	copy->forward_size = forward_copies_size;	
-	e->copy_reference = copy;
-
-
-	return copy;
-}
-
-
 //? Could create pointer to last element and just append to that 
 // Sets the correct next and prev pointers for the snapshot to be appended.
 void snapshot_append(snapshot* snap, snapshot** latest_snap_ptr){
@@ -1005,12 +950,28 @@ void snapshot_append(snapshot* snap, snapshot** latest_snap_ptr){
 	}
 }
 
-// // Creates copy without 
-// entry* entry_copy_local_values(entry* e){
-// 	entry* copy = malloc(sizeof(entry));
-// 	memcpy(copy, e, sizeof(entry));
-// 	return copy;
-// }
+// Creates copy for new snapshot
+entry* entry_copy_local_values(entry* e){
+	entry* copy = calloc(1, sizeof(entry));	
+	memcpy(copy, e, sizeof(entry));
+	
+	// Copy old backward array
+	entry** old_backward = copy->backward;
+	copy->backward = calloc(copy->backward_size, sizeof(entry*));
+	memcpy(copy->backward, old_backward, copy->backward_size*sizeof(entry*));
+
+	// Copy old forward array
+	entry** old_forward = copy->forward;
+	copy->forward = calloc(copy->forward_size, sizeof(entry*));
+	memcpy(copy->forward, old_forward, copy->forward_size*sizeof(entry*));
+
+	// Copy old values array
+	element* old_values = copy->values;
+	copy->values = calloc(copy->length, sizeof(element));
+	memcpy(copy->values, old_values, copy->length*sizeof(element));
+
+	return copy;
+}
 
 // Create copy of entries array with forward and backward links
 snapshot* snapshot_create(entry* entries, int id){
@@ -1037,6 +998,33 @@ snapshot* snapshot_create(entry* entries, int id){
 		}
 
 		previous = copy;
+		cursor = cursor->next;
+	}
+
+	// Second pass to create forward and backward links + values array
+	cursor = entries_copy;
+	while (cursor != NULL){
+		
+		// Copy values array
+		for (int i = 0; i < cursor->length; i++){
+			element value = cursor->values[i];
+			if (value.type == ENTRY){
+				cursor->values[i].entry = value.entry->copy_reference;
+			}
+		}
+
+		// Copy forwards array
+		for (int i = 0; i < cursor->forward_size; i++){
+			entry* fwd = cursor->forward[i];
+			cursor->forward[i] = fwd->copy_reference;
+		}
+
+		// Copy backwards array
+		for (int i = 0; i < cursor->backward_size; i++){
+			entry* bwd = cursor->backward[i];
+			cursor->backward[i] = bwd->copy_reference;
+		}
+
 		cursor = cursor->next;
 	}
 
