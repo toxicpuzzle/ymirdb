@@ -236,11 +236,13 @@ entry** current_state_ptr){
         return false;
     }
     
+	// Copy elements to the end of the values array in e
 	int old_length = e->length;
 	e->length = e->length + args_size;
 	e->values = realloc(e->values,	(e->length)*sizeof(element)); 
 	memcpy(e->values+old_length, elements, sizeof(element)*args_size);
 
+	// Connect each general entry created to entry e
 	for (int i = 0; i < args_size; i++){
 		element* current_element = elements+i;
 		if (current_element->type == ENTRY){
@@ -1221,7 +1223,8 @@ int main(void) {
 
 	while (true) {
 		printf("> ");
-	
+
+		// Exit if there are no user commands
 		if (NULL == fgets(line, MAX_LINE, stdin)) {
 			printf("\n");
 			program_clear(&current_state, &latest_snapshot);
@@ -1229,6 +1232,7 @@ int main(void) {
 			return 0;
 		}
 
+		// Split user command entry
 		char* word = strtok(line, " \n\r"); 
 		char** args = calloc(MAX_LINE, sizeof(char*));
 		size_t args_size = 0;
@@ -1244,6 +1248,7 @@ int main(void) {
 			continue;
 		}
 		
+		// Execute commands from user input
 		if (strcasecmp(command_type, "SET") == 0){
 			entry* e = entry_create(args+1, args_size-1, &current_state); 
 			if (e != NULL){

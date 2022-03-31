@@ -1,0 +1,16 @@
+> ok
+
+> ok
+
+> saved as snapshot 1
+
+> ok
+
+> a [10]
+
+> ok
+
+> b [10 a]
+a [10]
+
+> bye

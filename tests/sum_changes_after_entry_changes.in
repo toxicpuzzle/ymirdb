@@ -1,0 +1,10 @@
+SET a 1 2 3
+SUM a
+SET b 20
+PUSH a b
+SUM a
+DEL b
+POP a
+BACKWARD b
+SUM a
+bye

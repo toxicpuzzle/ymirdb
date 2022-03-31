@@ -1,0 +1,5 @@
+SET a 1 
+POP a
+APPEND a 3 2 1 
+LIST ENTRIES
+bye
