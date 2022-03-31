@@ -2,7 +2,7 @@ comp2017 - assignment 2
 Tim Yang
 yyan0195
 
-Overview of memory model
+Overview of the memory model
 
 Ymirdb is created using a linked-list memory model, where all entries in each state are referenced by a pointer
 to the latest entry inserted into the database. Each entry contains dynamic arrays storing the its forward and 
