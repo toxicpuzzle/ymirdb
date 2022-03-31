@@ -21,7 +21,7 @@ know that an entry has a valid sum_forward value if the has_visited attribute is
 generalised to implement the len, max, and snapshot-related functions.
 
 Reason for using recursion: Caching of all forward and backward entries in every entry is avoided, thereby
-avoiding the need to perform a potential O(n^2) operation for every command that updates entry(ies). The need
+avoiding the need to perform a potential O(n^2) operation for every command that updates entry(ies). 
 
 > Copying snapshots
 
