@@ -23,7 +23,7 @@ generalised to implement the len, max, and snapshot-related functions.
 Reason for using recursion: Caching of all forward and backward entries in every entry is avoided, thereby
 avoiding the need to perform a potential O(n^2) operation for every command that updates entry(ies). 
 
-> Copying snapshots
+Copying snapshots
 
 Each entry stores a copy_reference pointer to an entry struct, where a reference to the copied object is temporarily 
 stored. This reference is used by the copying algorithm to ensure forward and backward links of all copied objects
