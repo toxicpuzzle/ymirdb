@@ -63,7 +63,6 @@ bool string_isnumeric(char* string){
 
 // Prints out content of entry in a string format
 void entry_tostring(entry* e){
-	char* string = calloc(e->length*2, sizeof(char));
 	printf("[");
 	for (int i = 0; i < e->length; i++){
 		element* current_element = (e->values+i);
@@ -78,7 +77,6 @@ void entry_tostring(entry* e){
 		}
 	}
 	printf("]\n");
-	free(string);
 }	
 
 
