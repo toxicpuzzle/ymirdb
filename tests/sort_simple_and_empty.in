@@ -1,0 +1,10 @@
+SET a 1
+POP a
+GET a
+SORT a
+GET a
+SET a 3 2 1
+GET a
+SORT a
+GET a
+bye

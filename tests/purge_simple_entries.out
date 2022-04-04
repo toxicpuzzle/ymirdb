@@ -1,0 +1,42 @@
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> d [1 1 1]
+a [1 2 3]
+b [3 5 1]
+c [7]
+
+> saved as snapshot 1
+
+> ok
+
+> saved as snapshot 2
+
+> ok
+
+> saved as snapshot 3
+
+> ok
+
+> d [1 1 1]
+a [3 2 1 2 3 4]
+b [3 5 1]
+
+> ok
+
+> d [1 1 1]
+a [2 3 4]
+b [3 5 1]
+
+> ok
+
+> d [1 1 1]
+a [1 2 3]
+b [3 5 1]
+
+> bye

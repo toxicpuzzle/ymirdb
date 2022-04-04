@@ -45,12 +45,12 @@ struct entry {
   entry* prev; // Points to the previous entry
   
   size_t forward_size; // Number of forward links
-//   size_t forward_max; //? What is this? Is this the max element out of all elements in the forward links?
+//   size_t forward_max; 
   entry** forward;  // this entry depends on these
     
   size_t backward_size; // Number of backward links
-//   size_t backward_max;  //? Min max element out of all elements in backward links? or just current max size (constant number of forward back links?) -> Resize when backward_size reaches this num? -> don't have to realloc too frequently
-  entry** backward; // these entries depend on this //TODO: How to avoid O(n^2) time when deleting general entries?
+//   size_t backward_max; 
+  entry** backward; // these entries depend on this
 };
 
 struct snapshot {
@@ -61,7 +61,6 @@ struct snapshot {
 };
 
 // Functions
-
 void update_is_simple(entry* e);
 void swap(void* a1, int idx1, int idx2, size_t size_each_elem);
 void command_bye();
@@ -75,7 +74,8 @@ bool key_isvalid(char* key);
 entry* entry_create(char** args, size_t args_size, entry** current_state_ptr);
 void state_push(entry* e, entry** current_state_ptr);
 bool _entry_values_change_is_valid(entry* e, size_t len, element* elements);
-bool entry_append(entry* e, char** args, size_t args_size, entry** current_state_ptr);
+bool entry_append(entry* e, char** args, size_t args_size, 
+entry** current_state_ptr);
 void _reverse_array(void* array, int length, size_t size);
 bool entry_push(entry* e, char** args, size_t args_size, entry** current_state_ptr);
 void entry_min(entry* e);
@@ -86,8 +86,10 @@ int _calculate_len(entry* e);
 int entry_len(entry* e);
 void entry_free(entry* e);
 entry** _entries_remove(entry** entries, size_t* entries_len, entry* rm);
-entry** _entries_replace(entry** entries, size_t* entries_len, entry* target, entry* replacement);
-element* _elements_replace(element* elements, size_t* elements_len, entry* target, entry* replacement);
+entry** _entries_replace(entry** entries, size_t* entries_len, entry* target, 
+entry* replacement);
+element* _elements_replace(element* elements, size_t* elements_len, entry* target, 
+entry* replacement);
 void entry_set(entry* e, entry** current_state_ptr);
 void entry_reverse(entry* e);
 entry** _entries_append(entry** list, entry* e, int* list_size);
@@ -119,9 +121,11 @@ snapshot* snapshot_create(entry* entries, int id);
 void snapshot_free(entry* entries);
 void snapshot_drop(snapshot* snap, snapshot** latest_snap_ptr);
 void program_clear(entry** current_state_ptr, snapshot** latest_snap_ptr);
-void snapshot_rollback(snapshot* snap, entry** current_state_ptr, snapshot** latest_snap_ptr);
+void snapshot_rollback(snapshot* snap, entry** current_state_ptr, 
+snapshot** latest_snap_ptr);
 void snapshot_checkout(snapshot* snap, entry** current_state_ptr);
-snapshot* snapshot_save(int id, entry** current_state_ptr, snapshot** latest_snap_ptr);
+snapshot* snapshot_save(int id, entry** current_state_ptr, 
+snapshot** latest_snap_ptr);
 bool can_purge(char* key, entry** current_state_ptr, snapshot** latest_snap_ptr);
 void purge(char* key, entry** current_state_ptr, snapshot** latest_snap_ptr);
 

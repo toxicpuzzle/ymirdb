@@ -1,0 +1,30 @@
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> d [10 20 30]
+c [1 2 3]
+b [d c 1 2 3]
+a [b 1 2 3]
+
+> not permitted
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> no entries
+
+> bye

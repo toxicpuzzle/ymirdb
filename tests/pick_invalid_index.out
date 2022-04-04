@@ -1,0 +1,22 @@
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> b [12 3]
+a [b 1 2 3 b]
+
+> index out of range
+
+> index out of range
+
+> index out of range
+
+> b
+
+> b
+
+> bye

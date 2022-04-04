@@ -1,0 +1,49 @@
+> ok
+
+> saved as snapshot 1
+
+> ok
+
+> saved as snapshot 2
+
+> ok
+
+> saved as snapshot 3
+
+> 3
+2
+1
+
+> c [3]
+b [2]
+a [1]
+
+> ok
+
+> ok
+
+> no entries
+
+> ok
+
+> a [1]
+
+> ok
+
+> a [1]
+
+> no such snapshot
+
+> no such snapshot
+
+> a [1]
+
+> 1
+
+> ok
+
+> a [1]
+
+> no such snapshot
+
+> bye

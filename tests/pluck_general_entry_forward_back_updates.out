@@ -10,15 +10,17 @@
 
 > not permitted
 
-> not permitted
-
-> no such key
-
-> no such key
-
 > ok
 
+> b
+
+> index out of range
+
 > b [2 3]
-a [1 2 3 b b]
+a [1 2 3 b]
+
+> b
+
+> a
 
 > bye

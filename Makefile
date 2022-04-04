@@ -7,15 +7,6 @@ UFLAGS = -c -Wall -Wvla -Werror -g -std=gnu11 -Werror=format-security
 SRC = ymirdb.c
 OBJ = $(SRC:.c=.o)
 
-# all:$(TARGET)
-
-# $(TARGET):$(OBJ)
-# 	$(CC) -o $@ $(OBJ)
-
-# .SUFFIXES: .c .o
-
-# .c.o:
-# 	 $(CC) $(CFLAGS) $<
 ymirdb: ymirdb.o 
 	$(CC) ymirdb.o -o ymirdb -fsanitize=address -fprofile-arcs -ftest-coverage
 

@@ -1,0 +1,6 @@
+SET b 1 2 
+SET a 1 2 3 4 5 6 b
+LEN a
+PLUCK a 7
+LEN a
+bye

@@ -9,6 +9,6 @@ for file in $FILES; do
     echo "===== Executing test case: ${file} ====="
     echo " "
     #include the diff command to differentitate test case output with actual output
-    ./ymirdb < $file.in #$| diff - $file.out 
+    valgrind ./ymirdb < $file.in >> output.txt #$| diff - $file.out 
 
 done;

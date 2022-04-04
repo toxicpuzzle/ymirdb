@@ -1,0 +1,108 @@
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> saved as snapshot 1
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> saved as snapshot 2
+
+> ok
+
+> ok
+
+> simple entry only
+
+> [2 9 10 e g]
+
+> ok
+
+> [101]
+
+> ok
+
+> saved as snapshot 3
+
+> h [99]
+g [101 h]
+f [2 9 10 e g]
+e [h 1 2]
+d [2 h]
+c [g d 12 3]
+b [2 56 78 f c]
+a [17 23 101 d e]
+
+> 344
+
+> 8
+
+> 1
+
+> 101
+
+> 775
+
+> 17
+
+> 1
+
+> 101
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> h [99]
+g [101 h]
+f [2 9 10 e g]
+e [h 1 2]
+d [2 h]
+
+> ok
+
+> h [99]
+g [101]
+f [23]
+e [1 2]
+d [2 h]
+
+> not permitted
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> ok
+
+> not permitted
+
+> ok
+
+> bye

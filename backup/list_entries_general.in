@@ -1,6 +1,0 @@
-SET a 1 2 3
-SET b 1 2
-LIST ENTRIES
-SET C 1 2 a
-LIST ENTRIES
-bye
